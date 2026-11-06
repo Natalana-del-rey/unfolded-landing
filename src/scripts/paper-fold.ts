@@ -265,10 +265,13 @@ export class PaperFold {
 
   /** Match the canvas to its CSS size (the CSS sets width and aspect-ratio). */
   private layout(): void {
-    const rect = this.canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    this.width = rect.width;
-    this.height = rect.height;
+    // clientWidth/Height = the layout size, ignoring CSS transforms. getBoundingClientRect() would
+    // include them: re-measuring while the sheet is scaled down (the landing page's step 2) painted
+    // the words for a half-size sheet, so they came back double-sized and overlapping.
+    const { clientWidth: width, clientHeight: height } = this.canvas;
+    if (!width || !height) return;
+    this.width = width;
+    this.height = height;
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(this.width * this.dpr);
     this.canvas.height = Math.round(this.height * this.dpr);
