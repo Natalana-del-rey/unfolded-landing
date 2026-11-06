@@ -529,6 +529,12 @@ const description = `An example turn. The last player left “${sheet.theirs}”
       gap: var(--space-8);
     }
 
+    /* Reserve the status line's room (up to 3 lines) so the column never changes height
+       when it appears — otherwise the centred grid re-centres and the headline jumps. */
+    .turn__status {
+      min-height: 3lh;
+    }
+
     .hero {
       padding-top: var(--space-6);
     }
