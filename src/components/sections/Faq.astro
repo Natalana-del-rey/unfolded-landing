@@ -1,22 +1,11 @@
 ---
 /**
- * FAQ — an accessible accordion.
- *
- * Pattern (WAI-ARIA APG "Accordion"): each question is a real <button> inside an <h3>, with
- * aria-expanded and aria-controls pointing at its answer. Native button = Enter/Space for free.
- * Several answers can be open at once (opening one never closes another).
- * No region role on the panels: with 7+ panels it adds landmark noise (APG advice).
- *
- * Without JS every answer is visible and the buttons say "expanded" (true in the HTML).
- * With JS (the inline `.js` class on <html>), answers start collapsed; the script flips aria-expanded.
- * Opening animates the row height (grid 0fr → 1fr) + a fade, on --dur-fold / --ease-fold —
- * reduced motion collapses those tokens to 1ms, so it simply snaps.
- * Not <details>/<summary>: some screen readers drop the heading inside <summary>, and it's hard
- * to animate smoothly.
+ * FAQ — intro beside an <Accordion> (see ui/Accordion.astro for the pattern and its a11y notes).
  */
 import type { CollectionEntry } from 'astro:content';
 import Container from '../ui/Container.astro';
 import Heading from '../ui/Heading.astro';
+import Accordion from '../ui/Accordion.astro';
 
 interface Props {
   intro: CollectionEntry<'site'>['data']['faq'];
@@ -26,6 +15,7 @@ interface Props {
 const { intro, items } = Astro.props;
 // Keep "4-digit" on one line: a hyphen between a digit and a word becomes a non-breaking hyphen.
 const noBreak = (text: string) => text.replace(/(\d)-(\p{L})/gu, '$1‑$2');
+const questions = items.map(({ id, data }) => ({ id, question: data.question, answer: noBreak(data.answer) }));
 ---
 
 <section class="faq" id="faq" aria-labelledby="faq-title">
@@ -36,31 +26,7 @@ const noBreak = (text: string) => text.replace(/(\d)-(\p{L})/gu, '$1‑$2');
         <Heading level={2} id="faq-title">{intro.title}</Heading>
       </header>
 
-      <div class="faq__list" data-reveal>
-        {
-          items.map(({ id, data }) => (
-            <div class="faq__item">
-              <h3 class="faq__heading">
-                <button
-                  type="button"
-                  class="faq__q"
-                  id={`faq-q-${id}`}
-                  aria-expanded="true"
-                  aria-controls={`faq-a-${id}`}
-                >
-                  <span class="faq__q-text">{data.question}</span>
-                  <span class="faq__icon" aria-hidden="true" />
-                </button>
-              </h3>
-              <div class="faq__panel" id={`faq-a-${id}`}>
-                <div class="faq__panel-inner">
-                  <p>{noBreak(data.answer)}</p>
-                </div>
-              </div>
-            </div>
-          ))
-        }
-      </div>
+      <Accordion items={questions} idPrefix="faq" data-reveal />
     </div>
   </Container>
 </section>
@@ -85,116 +51,6 @@ const noBreak = (text: string) => text.replace(/(\d)-(\p{L})/gu, '$1‑$2');
     max-width: var(--measure);
   }
 
-  .faq__list {
-    border-block-start: 1px solid var(--color-border);
-  }
-
-  .faq__item {
-    border-block-end: 1px solid var(--color-border);
-  }
-
-  .faq__heading {
-    margin: 0;
-    font: inherit;
-  }
-
-  .faq__q {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
-    inline-size: 100%;
-    padding-block: var(--space-5);
-    padding-inline: 0;
-    border: 0;
-    background: none;
-    color: var(--color-text);
-    font-family: var(--font-display);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-medium);
-    line-height: var(--leading-snug);
-    text-align: start;
-    cursor: pointer;
-  }
-
-  .faq__q:focus-visible {
-    outline-offset: 4px;
-  }
-
-  /* A plus whose upright bar lies down to make a minus when open. */
-  .faq__icon {
-    position: relative;
-    flex: none;
-    inline-size: 16px;
-    block-size: 16px;
-  }
-
-  .faq__icon::before,
-  .faq__icon::after {
-    content: '';
-    position: absolute;
-    inset-block-start: 50%;
-    inset-inline-start: 0;
-    inline-size: 100%;
-    block-size: 1.5px;
-    margin-block-start: -0.75px;
-    background: currentColor;
-    transition: transform var(--dur-fold) var(--ease-fold);
-  }
-
-  .faq__icon::after {
-    transform: rotate(90deg);
-  }
-
-  /* Without JS the answers are always open, so the toggle icon would be a lie. */
-  :global(html:not(.js)) .faq__icon {
-    display: none;
-  }
-
-  .faq__item.is-open .faq__icon::after {
-    transform: rotate(0deg);
-  }
-
-  @media (hover: hover) {
-    .faq__q:hover .faq__q-text {
-      text-decoration: underline;
-      text-decoration-thickness: 1px;
-      text-underline-offset: 0.2em;
-    }
-  }
-
-  .faq__panel {
-    display: grid;
-    grid-template-rows: 1fr;
-  }
-
-  .faq__panel-inner {
-    min-block-size: 0;
-    overflow: hidden;
-  }
-
-  .faq__panel p {
-    max-width: var(--measure);
-    padding-block-end: var(--space-5);
-    padding-inline-end: var(--space-7);
-    color: var(--color-text-soft);
-  }
-
-  /* With JS: closed answers collapse to zero height and leave the accessibility tree.
-     `visibility` stays visible for the whole close transition, then hides. */
-  :global(.js) .faq__panel {
-    transition:
-      grid-template-rows var(--dur-fold) var(--ease-fold),
-      opacity var(--dur-fold) var(--ease-fold),
-      visibility var(--dur-fold);
-  }
-
-  :global(.js) .faq__item:not(.is-open) .faq__panel {
-    grid-template-rows: 0fr;
-    opacity: 0;
-    visibility: hidden;
-  }
-
   /* Desktop: intro on the inline-start, questions beside it. */
   @media (min-width: 960px) {
     .faq__layout {
@@ -202,26 +58,5 @@ const noBreak = (text: string) => text.replace(/(\d)-(\p{L})/gu, '$1‑$2');
       gap: var(--space-8);
       align-items: start;
     }
-
-    .faq__q {
-      font-size: var(--text-xl);
-    }
   }
 </style>
-
-<script>
-  const buttons = document.querySelectorAll<HTMLButtonElement>('.faq__q');
-
-  buttons.forEach((button) => {
-    const item = button.closest<HTMLElement>('.faq__item');
-    if (!item) return;
-
-    const set = (open: boolean) => {
-      item.classList.toggle('is-open', open);
-      button.setAttribute('aria-expanded', String(open));
-    };
-
-    set(false); // start collapsed (the HTML has them open for no-JS visitors)
-    button.addEventListener('click', () => set(button.getAttribute('aria-expanded') !== 'true'));
-  });
-</script>

@@ -9,6 +9,8 @@ import Badge from '../components/ui/Badge.astro';
 import Link from '../components/ui/Link.astro';
 import Mark from '../components/ui/Mark.astro';
 import Signatures from '../components/sections/Signatures.astro';
+import Accordion from '../components/ui/Accordion.astro';
+import { getCollection } from 'astro:content';
 import { tokenGroups, resolveColor, contrastRatio, luminance } from '../lib/tokens';
 
 const paper = resolveColor('--paper') ?? '#f6f6f5';
@@ -31,6 +33,17 @@ function usage(name: string, hex: string) {
 const sample = 'The paper folds over your words.';
 // The app's own Hebrew tagline — real product copy, not lorem ipsum.
 const sampleHe = 'כל אחד כתב שורה. אף אחד לא אשם.';
+
+// Accordion samples: the first three real FAQ questions, and Hebrew answers from the app's "How to play".
+const faqSample = (await getCollection('faq'))
+  .sort((a, b) => a.data.order - b.data.order)
+  .slice(0, 3)
+  .map(({ id, data }) => ({ id, question: data.question, answer: data.answer }));
+const faqSampleHe = [
+  { id: 'how', question: 'איך משחקים?', answer: 'כותבים יחד סיפור אחד, שורה בכל תור.' },
+  { id: 'players', question: 'כמה חברים יכולים לשחק?', answer: '2 עד 10 חברים. כל אחד מצטרף מהטלפון שלו עם הקוד.' },
+  { id: 'turn', question: 'כמה זמן יש לכל תור?', answer: 'המשחק בוחר מי יכתוב. יש שתי דקות לכל תור.' },
+];
 // Fonts that only carry Latin letters get a Latin-only specimen.
 const latinOnly = ['--font-wordmark', '--font-mono'];
 
@@ -368,6 +381,16 @@ const nav = [
         </div>
 
         <div class="specimen">
+          <Heading level={3} size="lg">Accordion</Heading>
+          <p class="specimen__note">
+            <code>items</code> (id, question, answer) · <code>idPrefix</code> keeps ids unique when two share a page ·
+            {' '}<code>headingLevel</code> fits the page outline (h4 here). Each question is a real button that says whether
+            it's open; several can be open at once. Without JavaScript every answer is simply shown.
+          </p>
+          <Accordion items={faqSample} idPrefix="ds-acc" headingLevel={4} />
+        </div>
+
+        <div class="specimen">
           <Heading level={3} size="lg">Section &amp; Container</Heading>
           <p class="specimen__note">
             <code>Section</code> tone: ground · paper · ink, with <code>--section-y</code> padding.
@@ -406,6 +429,9 @@ const nav = [
               <Heading level={4} size="2xl">כל אחד כתב שורה. אף אחד לא אשם.</Heading>
               <p><Link href="#components">להציץ</Link></p>
             </Card>
+          </div>
+          <div class="specimen__stack">
+            <Accordion items={faqSampleHe} idPrefix="ds-acc-he" headingLevel={4} />
           </div>
         </div>
       </Container>
@@ -727,6 +753,10 @@ const nav = [
     padding: var(--space-6);
     background: var(--color-bg);
     border-top: 0;
+  }
+
+  .specimen__stack {
+    margin-block-start: var(--space-6);
   }
 
   .specimen__note {

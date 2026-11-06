@@ -1,0 +1,198 @@
+---
+/**
+ * Accordion — questions that open to show their answers.
+ *
+ * Pattern (WAI-ARIA APG "Accordion"): each question is a real <button> inside a heading, with
+ * aria-expanded and aria-controls pointing at its answer. Native button = Enter/Space for free.
+ * Several answers can be open at once (opening one never closes another).
+ * No region role on the panels: with many panels it adds landmark noise (APG advice).
+ *
+ * Without JS every answer is visible and the buttons say "expanded" (true in the HTML).
+ * With JS (the inline `.js` class on <html>), answers start collapsed; the script flips aria-expanded.
+ * Opening animates the row height (grid 0fr → 1fr) + a fade, on --dur-fold / --ease-fold —
+ * reduced motion collapses those tokens to 1ms, so it simply snaps.
+ * Not <details>/<summary>: some screen readers drop the heading inside <summary>, and it's hard
+ * to animate smoothly.
+ *
+ * Several accordions can share a page: `idPrefix` keeps their ids unique, and the script
+ * wires up every one.
+ */
+import type { HTMLAttributes } from 'astro/types';
+
+interface Item {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+interface Props extends HTMLAttributes<'div'> {
+  items: Item[];
+  /** Prefix for the question/answer ids — must be unique per accordion on a page. */
+  idPrefix: string;
+  /** Heading level of each question, to fit the page outline. */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+}
+
+const { items, idPrefix, headingLevel = 3, class: className, ...rest } = Astro.props;
+const H = `h${headingLevel}` as const;
+---
+
+<div class:list={['accordion', className]} {...rest}>
+  {
+    items.map(({ id, question, answer }) => (
+      <div class="accordion__item">
+        <H class="accordion__heading">
+          <button
+            type="button"
+            class="accordion__q"
+            id={`${idPrefix}-q-${id}`}
+            aria-expanded="true"
+            aria-controls={`${idPrefix}-a-${id}`}
+          >
+            <span class="accordion__q-text">{question}</span>
+            <span class="accordion__icon" aria-hidden="true" />
+          </button>
+        </H>
+        <div class="accordion__panel" id={`${idPrefix}-a-${id}`}>
+          <div class="accordion__panel-inner">
+            <p>{answer}</p>
+          </div>
+        </div>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .accordion {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .accordion__item {
+    border-block-end: 1px solid var(--color-border);
+  }
+
+  .accordion__heading {
+    margin: 0;
+    font: inherit;
+  }
+
+  .accordion__q {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    inline-size: 100%;
+    padding-block: var(--space-5);
+    padding-inline: 0;
+    border: 0;
+    background: none;
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-medium);
+    line-height: var(--leading-snug);
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .accordion__q:focus-visible {
+    outline-offset: 4px;
+  }
+
+  /* A plus whose upright bar lies down to make a minus when open. */
+  .accordion__icon {
+    position: relative;
+    flex: none;
+    inline-size: 16px;
+    block-size: 16px;
+  }
+
+  .accordion__icon::before,
+  .accordion__icon::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 0;
+    inline-size: 100%;
+    block-size: 1.5px;
+    margin-block-start: -0.75px;
+    background: currentColor;
+    transition: transform var(--dur-fold) var(--ease-fold);
+  }
+
+  .accordion__icon::after {
+    transform: rotate(90deg);
+  }
+
+  /* Without JS the answers are always open, so the toggle icon would be a lie. */
+  :global(html:not(.js)) .accordion__icon {
+    display: none;
+  }
+
+  .accordion__item.is-open .accordion__icon::after {
+    transform: rotate(0deg);
+  }
+
+  @media (hover: hover) {
+    .accordion__q:hover .accordion__q-text {
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.2em;
+    }
+  }
+
+  .accordion__panel {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+
+  .accordion__panel-inner {
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .accordion__panel p {
+    max-width: var(--measure);
+    padding-block-end: var(--space-5);
+    padding-inline-end: var(--space-7);
+    color: var(--color-text-soft);
+  }
+
+  /* With JS: closed answers collapse to zero height and leave the accessibility tree.
+     `visibility` stays visible for the whole close transition, then hides. */
+  :global(.js) .accordion__panel {
+    transition:
+      grid-template-rows var(--dur-fold) var(--ease-fold),
+      opacity var(--dur-fold) var(--ease-fold),
+      visibility var(--dur-fold);
+  }
+
+  :global(.js) .accordion__item:not(.is-open) .accordion__panel {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  @media (min-width: 960px) {
+    .accordion__q {
+      font-size: var(--text-xl);
+    }
+  }
+</style>
+
+<script>
+  // Wires up every accordion on the page.
+  document.querySelectorAll<HTMLButtonElement>('.accordion__q').forEach((button) => {
+    const item = button.closest<HTMLElement>('.accordion__item');
+    if (!item) return;
+
+    const set = (open: boolean) => {
+      item.classList.toggle('is-open', open);
+      button.setAttribute('aria-expanded', String(open));
+    };
+
+    set(false); // start collapsed (the HTML has them open for no-JS visitors)
+    button.addEventListener('click', () => set(button.getAttribute('aria-expanded') !== 'true'));
+  });
+</script>
