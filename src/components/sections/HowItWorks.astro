@@ -2,8 +2,9 @@
 /**
  * How it works — the practical, scannable version of the game: four numbered paper slips.
  *
- * A thin ink line joins the step numbers and fills as you scroll (scrubbed, never pinned).
- * Each number inks in as the line reaches it. The slips themselves stay still: plain paper.
+ * A thin ink line joins the step numbers. When the steps come into view it draws once from 01 to 04
+ * on a timer (~2.2s), each number inking in as the line reaches it. Not tied to scroll position:
+ * a scrubbed version left the line half-drawn when you jumped here from the header link. The slips themselves stay still: plain paper.
  * Desktop: slips side by side, the line runs across. Phones: slips stacked, the line runs down.
  * Reduced motion (or no JS): the line is full and every number is inked from the start.
  *
@@ -226,22 +227,16 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 600, qual
   const steps = list ? Array.from(list.querySelectorAll<HTMLElement>('.how__step')) : [];
 
   if (list && steps.length && !prefersReducedMotion()) {
+    // Plays once, start to finish, as soon as the slips are on screen — however you got here
+    // (scrolling, or jumping from the header link; if you land already past it, it plays at once).
     const tl = gsap.timeline({
-      defaults: { ease: 'none' },
-      scrollTrigger: {
-        trigger: list,
-        // Starts once the step row is a third of the way up the screen (slips in view),
-        // finishes when the slips' bottom edge reaches the middle.
-        start: 'top 65%',
-        end: 'bottom 50%',
-        scrub: 0.6,
-      },
+      paused: true,
+      scrollTrigger: { trigger: list, start: 'top 85%', end: 'max', once: true, onEnter: () => tl.play() },
     });
 
     steps.forEach((step, i) => {
-      // Set the start explicitly — scrubbed timelines don't apply later "from" states on their own.
-      tl.fromTo(step, { '--on': 0 }, { '--on': 1, duration: 0.15 }, i);
-      if (i < steps.length - 1) tl.fromTo(step, { '--fill': 0 }, { '--fill': 1, duration: 0.85 }, i + 0.15);
+      tl.to(step, { '--on': 1, duration: 0.25, ease: 'power1.out' });
+      if (i < steps.length - 1) tl.to(step, { '--fill': 1, duration: 0.4, ease: 'none' });
     });
   }
 </script>

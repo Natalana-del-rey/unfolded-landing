@@ -19,6 +19,11 @@ html {
   color-scheme: light;
 }
 
+/* Arriving at a section by link (#how-it-works, #faq): leave room above its heading. */
+section[id] {
+  scroll-margin-block-start: var(--space-7);
+}
+
 body {
   min-height: 100dvh;
   font-family: var(--font-ui);
