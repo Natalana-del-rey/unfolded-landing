@@ -1,0 +1,55 @@
+{
+  "home": {
+    "name": "Unfolded",
+    "appUrl": "https://unfolded-dlzl.onrender.com",
+    "meta": {
+      "title": "Unfolded — the folded-paper story game, on your phones",
+      "description": "A party game for 2–10 friends in the same room. Write one story together, one line at a time, without seeing what came before. Then read it out loud."
+    },
+    "hero": {
+      "eyebrow": "A party game for friends in the same room",
+      "title": "Everyone writes a line. Nobody’s to blame.",
+      "lead": "Write one story together on your phones. You only see the last few words before your turn, then you fold the page and pass it on. At the end, everyone reads the whole thing out loud.",
+      "primaryCta": "Try Unfolded",
+      "secondaryCta": { "label": "How it works", "href": "#how-it-works" },
+      "specs": [
+        { "value": "2–10", "label": "friends" },
+        { "value": "6–12", "label": "rounds" },
+        { "value": "1", "label": "story, signed by all" }
+      ]
+    },
+    "story": {
+      "eyebrow": "The paper game, reinvented",
+      "title": "You already know how to play."
+    },
+    "features": {
+      "eyebrow": "What makes it Unfolded",
+      "title": "Small details that feel like paper."
+    },
+    "howItWorks": {
+      "eyebrow": "How it works",
+      "title": "From empty page to read-aloud in four steps."
+    },
+    "testimonials": {
+      "eyebrow": "From the table",
+      "title": "What players say."
+    },
+    "faq": {
+      "eyebrow": "Questions",
+      "title": "Before you fold the first page."
+    },
+    "finalCta": {
+      "title": "Gather your friends. Fold the first page.",
+      "lead": "Open a room, share the 4-digit code, and start the story. Everyone’s phone is the paper.",
+      "primaryCta": "Try Unfolded"
+    },
+    "footer": {
+      "credit": "Designed & built by Natalie Tarnovsky",
+      "creditUrl": "https://hire-natalie.today",
+      "links": [
+        { "label": "Design system", "href": "/design-system" },
+        { "label": "Source on GitHub", "href": "https://github.com/Natalana-del-rey/unfolded-landing" }
+      ]
+    }
+  }
+}

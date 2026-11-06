@@ -1,0 +1,44 @@
+[
+  {
+    "id": "players",
+    "order": 1,
+    "question": "How many people can play?",
+    "answer": "2–10 friends. A game runs 6–12 rounds, so there’s room for everyone to write more than once."
+  },
+  {
+    "id": "same-room",
+    "order": 2,
+    "question": "Do we need to be in the same room?",
+    "answer": "That’s how it’s designed to be played: together, at a party or an evening in, ending with the story read out loud. There are no notifications on purpose. Everyone plays at the same time, phones in hand."
+  },
+  {
+    "id": "install",
+    "order": 3,
+    "question": "Do we need to download an app?",
+    "answer": "No. Unfolded runs in the browser on any phone. Friends join with a link or a 4-digit room code."
+  },
+  {
+    "id": "see-others",
+    "order": 4,
+    "question": "Can I see what the others wrote?",
+    "answer": "Not until the end. That’s the fun. You only see the last few words before your turn. If you forget what you wrote yourself, Peek lets you look under your fold for a moment."
+  },
+  {
+    "id": "slow",
+    "order": 5,
+    "question": "What if someone takes too long?",
+    "answer": "Each turn lasts 2 minutes. In the final 30 seconds everyone sees a last call, and if time runs out, the turn passes on, so the story keeps moving."
+  },
+  {
+    "id": "account",
+    "order": 6,
+    "question": "Do I need an account?",
+    "answer": "No, you can play without one. With an account (just a name and email), your finished stories are saved to your profile."
+  },
+  {
+    "id": "share",
+    "order": 7,
+    "question": "Can I share a finished story?",
+    "answer": "Sharing a story as an image is coming soon. For now, finished stories are saved to your profile."
+  }
+]

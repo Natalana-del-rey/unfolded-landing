@@ -1,0 +1,23 @@
+[
+  {
+    "id": "paper",
+    "order": 1,
+    "title": "One sheet goes around the table.",
+    "body": "You write a line, fold the paper over it so only the last few words show, and pass it on. Some call it Consequences, some call it Exquisite Corpse.",
+    "visual": "paper"
+  },
+  {
+    "id": "phone",
+    "order": 2,
+    "title": "Now the paper is on everyone’s phone.",
+    "body": "You see only the start of the sentence the last player left. Finish it, begin the next one, and tap “fold the page”. The paper folds over your words.",
+    "visual": "phone"
+  },
+  {
+    "id": "sheet",
+    "order": 3,
+    "title": "Then you unfold it together.",
+    "body": "After the last line, everyone gets the same story on one sheet of paper, signed by everyone who wrote it. Someone reads it out loud.",
+    "visual": "sheet"
+  }
+]

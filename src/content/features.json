@@ -1,0 +1,26 @@
+[
+  {
+    "id": "fold",
+    "order": 1,
+    "tag": "The fold + Peek",
+    "title": "A fold that feels like paper.",
+    "body": "When you tap “fold the page”, the sheet really bends and hides your words, just like the paper game. Forgot what you wrote? Peek lets you look under the fold for a moment.",
+    "visual": "fold"
+  },
+  {
+    "id": "signed-ending",
+    "order": 2,
+    "tag": "The ending",
+    "title": "One story, signed by everyone.",
+    "body": "The game ends on a single sheet of paper with the whole story, signed with each player’s own drawn signature. It’s saved to your profile.",
+    "visual": "signatures"
+  },
+  {
+    "id": "join-code",
+    "order": 3,
+    "tag": "Zero friction",
+    "title": "Join with four digits.",
+    "body": "Nothing to install. Friends join from any phone with a link or a 4-digit room code, and you’re in.",
+    "visual": "code"
+  }
+]
