@@ -6,6 +6,7 @@ import Container from '../ui/Container.astro';
 import Heading from '../ui/Heading.astro';
 import Button from '../ui/Button.astro';
 import Badge from '../ui/Badge.astro';
+import Mark from '../ui/Mark.astro';
 
 interface Props {
   hero: CollectionEntry<'site'>['data']['hero'];
@@ -61,7 +62,9 @@ const description = `An example turn. The last player left “${sheet.theirs}”
     >
       <!-- A playable turn: the steps light up as they happen; the visitor does the fold. -->
       <div class="turn" aria-hidden="true">
-        <Badge variant="solid">{sheet.turnLabel}</Badge>
+        <Badge variant="solid" class="turn__label">{sheet.turnLabel}</Badge>
+        <!-- Your fellow player. Winks at you when you fold the page. -->
+        <Mark size={72} class="turn__mark" />
         <ol class="turn__steps">
           {
             sheet.steps.map((step, i) => (
@@ -95,6 +98,7 @@ const description = `An example turn. The last player left “${sheet.theirs}”
 
 <script>
   import { gsap, duration, ease, revealDistance, prefersReducedMotion, showImmediately } from '../../scripts/motion';
+  import { wink } from '../../scripts/wink';
 
   const reduced = prefersReducedMotion();
 
@@ -205,6 +209,7 @@ const description = `An example turn. The last player left “${sheet.theirs}”
       sheet.setLines([lines.theirs, lines.mine]);
       setStep(3);
       await sheet.fold();
+      wink(figure.querySelector('[data-mark]')); // your secret's safe
       if (reduced) gsap.set([sheetEl, controls], { y: glideBy });
       else await gsap.to([sheetEl, controls], { y: glideBy, ...move });
       folded = true;
@@ -379,11 +384,31 @@ const description = `An example turn. The last player left “${sheet.theirs}”
     padding-inline: 24px; /* line up with the sheet's paper edge */
   }
 
+  /* Badge and steps on the left; the unicorn on the right, perched on the sheet's top edge. */
   .turn {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3) var(--space-4);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'label mark'
+      'steps mark';
+    align-items: end;
+    justify-items: start;
+    gap: var(--space-3) var(--space-2);
+  }
+
+  :global(.turn__label) {
+    grid-area: label;
+  }
+
+  .turn__steps {
+    grid-area: steps;
+  }
+
+  :global(.turn__mark) {
+    grid-area: mark;
+    margin-bottom: -14px; /* sits on the paper */
+    position: relative;
+    z-index: 1;
   }
 
   /* Two rows of two: 1 2 / 3 4. */
@@ -430,68 +455,6 @@ const description = `An example turn. The last player left “${sheet.theirs}”
 
   .turn__steps li.is-active .turn__num,
   [data-step='5'] .turn__steps .turn__num {
-    border-color: var(--color-action);
-    background: var(--color-action);
-    color: var(--color-action-text);
-  }
-
-  .turn__controls {
-    width: min(100%, 460px);
-    padding-inline: 24px; /* line up with the sheet's paper edge */
-  }
-
-  .turn {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3) var(--space-4);
-  }
-
-  /* Two rows of two: 1 2 / 3 4. */
-  .turn__steps {
-    display: grid;
-    grid-template-columns: repeat(2, max-content);
-    gap: var(--space-2) var(--space-5);
-    padding: 0;
-    list-style: none;
-    font-size: var(--text-sm);
-  }
-
-  .turn__steps li {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--color-text-muted);
-    transition: color var(--dur-base) ease-out;
-  }
-
-  .turn__num {
-    display: inline-grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border: 1px solid var(--color-border);
-    border-radius: 50%;
-    font-size: var(--text-xs);
-    line-height: 1;
-    transition:
-      background-color var(--dur-base) ease-out,
-      border-color var(--dur-base) ease-out,
-      color var(--dur-base) ease-out;
-  }
-
-  /* Current step: ink + filled number. Done steps: ink. */
-  [data-step='1'] li[data-index='1'],
-  [data-step='2'] li:is([data-index='1'], [data-index='2']),
-  [data-step='3'] li,
-  [data-step='4'] li {
-    color: var(--color-text);
-  }
-
-  [data-step='1'] li[data-index='1'] .turn__num,
-  [data-step='2'] li[data-index='2'] .turn__num,
-  [data-step='3'] li[data-index='3'] .turn__num,
-  [data-step='4'] li .turn__num {
     border-color: var(--color-action);
     background: var(--color-action);
     color: var(--color-action-text);
