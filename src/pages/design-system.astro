@@ -27,6 +27,10 @@ function usage(name: string, hex: string) {
 }
 
 const sample = 'The paper folds over your words.';
+// The app's own Hebrew tagline — real product copy, not lorem ipsum.
+const sampleHe = 'כל אחד כתב שורה. אף אחד לא אשם.';
+// Fonts that only carry Latin letters get a Latin-only specimen.
+const latinOnly = ['--font-wordmark', '--font-mono'];
 
 const nav = [
   ['colour', 'Colour'],
@@ -115,7 +119,8 @@ const nav = [
       <Container>
         <Heading level={2} size="2xl" id="type-title">Type</Heading>
         <p class="ds-intro">
-          Frank Ruhl Libre for headings, IBM Plex Sans for reading, Newsreader for the wordmark. Sizes from
+          Every family works in English and Hebrew: Frank Ruhl Libre for headings, IBM Plex Sans (and Plex Sans Hebrew)
+          for reading, Caveat and Gveret Levin for signed names, Newsreader for the wordmark. Sizes from
           {' '}<code>--text-2xl</code> up are fluid — resize the window to watch them scale.
         </p>
 
@@ -123,7 +128,9 @@ const nav = [
           {
             tokenGroups.fonts.map((t) => (
               <li>
-                <span class="families__sample" style={`font-family: var(${t.name})`}>Aa</span>
+                <span class="families__sample" style={`font-family: var(${t.name})`}>
+                  Aa{!latinOnly.includes(t.name) && <span lang="he"> אב</span>}
+                </span>
                 <code>{t.name}</code>
               </li>
             ))
@@ -135,16 +142,30 @@ const nav = [
             [...tokenGroups.typeScale].reverse().map((t) => (
               <li>
                 <code class="type-scale__label">{t.name}</code>
-                <span
-                  class="type-scale__sample"
+                <div
+                  class="type-scale__samples"
                   style={`font-size: var(${t.name}); font-family: var(${t.name.match(/2xl|3xl|hero/) ? '--font-display' : '--font-ui'})`}
                 >
-                  {sample}
-                </span>
+                  <span class="type-scale__sample">{sample}</span>
+                  <span class="type-scale__sample" lang="he" dir="rtl">{sampleHe}</span>
+                </div>
               </li>
             ))
           }
         </ol>
+
+        <div class="signatures">
+          <Heading level={3} size="lg">Signatures</Heading>
+          <p class="specimen__note">
+            <code>--font-signature</code> — how each writer's name appears under the finished story.
+          </p>
+          <p class="signatures__names">
+            <span>Natalie</span>
+            <span lang="he" dir="rtl">נטלי</span>
+            <span>Dana</span>
+            <span lang="he" dir="rtl">יואב</span>
+          </p>
+        </div>
 
         <dl class="token-list">
           {
@@ -337,6 +358,35 @@ const nav = [
             <div class="tones__item tones__item--ink">ink</div>
           </div>
         </div>
+
+        <div class="specimen" lang="he" dir="rtl">
+          <Heading level={3} size="lg">מימין לשמאל · Right-to-left</Heading>
+          <p class="specimen__note" lang="en" dir="ltr">
+            The same components with <code>dir="rtl"</code> and the app's Hebrew wording. Layout uses logical properties
+            (<code>padding-inline</code>, not <code>padding-left</code>), so nothing needs a mirrored version, and
+            {' '}<code>:lang(he)</code> resets the letter-spacing Hebrew doesn't use.
+          </p>
+          <div class="specimen__row">
+            <Button>פתיחת חדר</Button>
+            <Button variant="secondary">הצטרפות לחדר</Button>
+            <Button variant="ghost">להציץ</Button>
+          </div>
+          <div class="specimen__row">
+            <Badge><bdi dir="ltr">2–10</bdi> חברים</Badge>
+            <Badge variant="solid"><bdi dir="ltr">6–12</bdi> סבבים</Badge>
+            <Badge variant="soft">בקרוב</Badge>
+          </div>
+          <div class="specimen__grid specimen__grid--rtl">
+            <Card>
+              <Heading level={4} size="xl">לקפל את הדף</Heading>
+              <p>רואים רק את תחילת המשפט. משלימים, מקפלים ומשאירים התחלה לתור הבא.</p>
+            </Card>
+            <Card interactive>
+              <Heading level={4} size="2xl">כל אחד כתב שורה. אף אחד לא אשם.</Heading>
+              <p><Link href="#components">להציץ</Link></p>
+            </Card>
+          </div>
+        </div>
       </Container>
     </Section>
   </main>
@@ -508,9 +558,31 @@ const nav = [
     color: var(--color-text-muted);
   }
 
+  .type-scale__samples {
+    display: grid;
+    gap: 0.15em;
+  }
+
   .type-scale__sample {
     line-height: var(--leading-tight);
     overflow-wrap: anywhere;
+  }
+
+  .type-scale__sample:lang(he) {
+    color: var(--color-text-soft);
+  }
+
+  .signatures {
+    margin-top: var(--space-7);
+  }
+
+  .signatures__names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-7);
+    font-family: var(--font-signature);
+    font-size: var(--text-2xl);
+    line-height: 1.2;
   }
 
   .token-list {
@@ -672,6 +744,12 @@ const nav = [
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: var(--space-5);
+  }
+
+  .specimen__grid--rtl {
+    margin-top: var(--space-6);
+    padding: var(--space-6);
+    background: var(--color-bg);
   }
 
   .tones {
