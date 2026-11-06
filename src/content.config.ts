@@ -38,13 +38,16 @@ const site = defineCollection({
       primaryCta: z.string(),
       secondaryCta: cta,
       specs: z.array(z.object({ value: z.string(), label: z.string() })),
-      /** The words written on the hero's folding sheet. */
+      /** The hero's playable turn: the words on the sheet and the controls around it. */
       sheet: z.object({
-        theirs: z.string(), // the previous player's start (muted)
-        mine: z.string(), // how you finished it (ink) — this half folds away
-        next: z.string(), // the start you leave for the next player — stays visible
-        caption: z.string(), // describes the animation for screen readers
-        peekLabel: z.string(),
+        turnLabel: z.string(),
+        steps: z.array(z.string()).length(4), // read → finish → fold → start the next line
+        theirs: z.string(), // what the last player left you (muted)
+        mine: z.string(), // how you finish it — this half folds away
+        next: z.string(), // written after the fold, on the visible half, for the next player
+        foldLabel: z.string(),
+        replayLabel: z.string(),
+        passOn: z.string(), // shown once the turn is done
       }),
     }),
     story: sectionIntro,

@@ -30,11 +30,19 @@
         }
       ],
       "sheet": {
+        "turnLabel": "Your turn",
+        "steps": [
+          "Read the last line",
+          "Finish it",
+          "Fold the page",
+          "Start the next line"
+        ],
         "theirs": "On a stormy night,",
         "mine": "Natalie found an old letter under the door.",
         "next": "Inside, in tiny handwriting, it said",
-        "caption": "A sheet of paper folds over the line just written, leaving only the start of the next sentence for the next player.",
-        "peekLabel": "Peek"
+        "foldLabel": "Fold the page",
+        "replayLabel": "Play again",
+        "passOn": "Passed on. The next player sees only this line, and carries on the story."
       }
     },
     "story": {

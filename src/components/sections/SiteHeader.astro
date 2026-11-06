@@ -1,5 +1,8 @@
 ---
+import { Image } from 'astro:assets';
 import Wordmark from '../../assets/img/unfolded-wordmark.svg';
+import mark from '../../assets/img/mark.png';
+import markWink from '../../assets/img/mark-wink.png';
 import Container from '../ui/Container.astro';
 import Button from '../ui/Button.astro';
 
@@ -13,7 +16,12 @@ const { appUrl, ctaLabel } = Astro.props;
 
 <header class="site-header">
   <Container class="site-header__inner">
-    <a href="/" class="site-header__logo" aria-label="Unfolded — home">
+    <a href="/" class="site-header__logo" aria-label="Unfolded — home" data-logo>
+      <!-- The app's mark: winks on hover/focus, and once on load — like the app's opening screen. -->
+      <span class="mark" aria-hidden="true">
+        <Image src={mark} alt="" width={48} height={48} densities={[1, 2]} loading="eager" class="mark__open" />
+        <Image src={markWink} alt="" width={48} height={48} densities={[1, 2]} loading="eager" class="mark__wink" />
+      </span>
       <Wordmark aria-hidden="true" role="presentation" />
     </a>
     <nav aria-label="Main" class="site-header__nav">
@@ -23,6 +31,17 @@ const { appUrl, ctaLabel } = Astro.props;
     <Button href={appUrl} class="site-header__cta">{ctaLabel}</Button>
   </Container>
 </header>
+
+<script>
+  // One wink after the page settles. Skipped with reduced motion.
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const logo = document.querySelector('[data-logo]');
+    setTimeout(() => {
+      logo?.classList.add('is-winking');
+      setTimeout(() => logo?.classList.remove('is-winking'), 700);
+    }, 1600);
+  }
+</script>
 
 <style>
   .site-header {
@@ -36,9 +55,38 @@ const { appUrl, ctaLabel } = Astro.props;
   }
 
   .site-header__logo {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     margin-inline-end: auto;
-    padding-block: var(--space-2);
+    padding-block: var(--space-1);
+  }
+
+  .mark {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+
+  .mark :global(img) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Instant swap, like a real blink (the app uses steps(), not a fade). */
+  .mark :global(.mark__wink) {
+    visibility: hidden;
+  }
+
+  .site-header__logo:is(:hover, :focus-visible, .is-winking) :global(.mark__wink) {
+    visibility: visible;
+  }
+
+  .site-header__logo:is(:hover, :focus-visible, .is-winking) :global(.mark__open) {
+    visibility: hidden;
   }
 
   .site-header__logo :global(svg) {

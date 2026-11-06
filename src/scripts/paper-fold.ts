@@ -132,6 +132,13 @@ export class PaperFold {
     this.layout();
   }
 
+  /** Replace the words on the sheet (e.g. one more letter while typing) and redraw. */
+  setLines(lines: PaperLine[]): void {
+    this.options = { ...this.options, lines };
+    this.paint();
+    this.draw();
+  }
+
   /** 0 = flat sheet, 1 = folded. Use for scroll-driven folds. */
   setProgress(progress: number): void {
     cancelAnimationFrame(this.frame);
@@ -164,8 +171,10 @@ export class PaperFold {
 
   // The same three moves the app uses.
   fold = () => this.animateTo(1, 1100);
-  lift = () => this.animateTo(0.12, 650); // Peek: the flap comes back up a little
+  /** Peek: the flap comes back up. `to` is the fold progress to open to (the app uses 0.12 — almost flat). */
+  lift = (to = 0.12) => this.animateTo(to, 650);
   refold = () => this.animateTo(1, 750);
+  unfold = () => this.animateTo(0, 700);
 
   destroy(): void {
     cancelAnimationFrame(this.frame);

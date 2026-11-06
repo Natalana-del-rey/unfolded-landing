@@ -5,6 +5,7 @@ import paperImage from '../../assets/img/paper.png';
 import Container from '../ui/Container.astro';
 import Heading from '../ui/Heading.astro';
 import Button from '../ui/Button.astro';
+import Badge from '../ui/Badge.astro';
 
 interface Props {
   hero: CollectionEntry<'site'>['data']['hero'];
@@ -15,6 +16,10 @@ const { hero, appUrl } = Astro.props;
 
 // The app's paper texture is a 1.6 MB PNG; Astro re-encodes it as a small WebP at build time.
 const paper = await getImage({ src: paperImage, format: 'webp', width: 920, quality: 80 });
+
+const { sheet } = hero;
+// The sheet is a canvas, so screen readers get the same turn described in words.
+const description = `An example turn. The last player left “${sheet.theirs}”. You finish it with “${sheet.mine}” and fold the page over your words. Then you start the next sentence, “${sheet.next}”, which is all the next player will see.`;
 ---
 
 <section class="hero" aria-labelledby="hero-title">
@@ -44,22 +49,46 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 920, qual
     <figure
       class="hero__visual"
       data-state="loading"
+      data-step="0"
       data-paper={paper.src}
-      data-theirs={hero.sheet.theirs}
-      data-mine={hero.sheet.mine}
-      data-next={hero.sheet.next}
+      data-theirs={sheet.theirs}
+      data-mine={sheet.mine}
+      data-next={sheet.next}
+      data-fold-label={sheet.foldLabel}
+      data-replay-label={sheet.replayLabel}
+      data-pass-on={sheet.passOn}
       style={`--paper-texture: url(${paper.src})`}
     >
+      <!-- A playable turn: the steps light up as they happen; the visitor does the fold. -->
+      <div class="turn" aria-hidden="true">
+        <Badge variant="solid">{sheet.turnLabel}</Badge>
+        <ol class="turn__steps">
+          {
+            sheet.steps.map((step, i) => (
+              <li data-index={i + 1}>
+                <span class="turn__num">{i + 1}</span>
+                {step}
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+
       <div class="sheet">
         <canvas class="sheet__canvas" aria-hidden="true"></canvas>
         <!-- Shown if WebGL isn't available (or JS is off): the sheet, already folded. -->
         <div class="sheet__fallback" aria-hidden="true">
           <span class="sheet__bands"></span>
-          <p>{hero.sheet.next}</p>
+          <p>{sheet.next}</p>
         </div>
       </div>
-      <figcaption class="visually-hidden">{hero.sheet.caption}</figcaption>
-      <Button variant="secondary" class="hero__peek" hidden>{hero.sheet.peekLabel}</Button>
+
+      <div class="turn__controls">
+        <Button variant="secondary" class="turn__fold" hidden>{sheet.foldLabel}</Button>
+        <p class="turn__status" aria-live="polite"></p>
+      </div>
+
+      <figcaption class="visually-hidden">{description}</figcaption>
     </figure>
   </Container>
 </section>
@@ -80,63 +109,137 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 920, qual
       .fromTo('.hero__visual', { y: revealDistance() * 2, rotate: -1.5 }, { y: 0, rotate: 0 }, 0.2);
   }
 
-  // ---- The fold: loaded after the page is idle so it never delays the first paint.
+  // ---- The playable turn, loaded after the page is idle so it never delays the first paint.
   const figure = document.querySelector<HTMLElement>('.hero__visual')!;
   const canvas = figure.querySelector<HTMLCanvasElement>('canvas')!;
-  const peek = figure.querySelector<HTMLButtonElement>('.hero__peek')!;
+  const sheetEl = figure.querySelector<HTMLElement>('.sheet')!;
+  const controls = figure.querySelector<HTMLElement>('.turn__controls')!;
+  const button = figure.querySelector<HTMLButtonElement>('.turn__fold')!;
+  const status = figure.querySelector<HTMLElement>('.turn__status')!;
+  const { paper, theirs, mine, next, foldLabel, replayLabel, passOn } = figure.dataset as Record<string, string>;
+
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const whenIdle = (fn: () => void) =>
     'requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300);
 
+  // The turn, in the app's order: 1 read · 2 finish · 3 fold · 4 start the next line · 5 done.
+  const stepItems = [...figure.querySelectorAll<HTMLElement>('.turn__steps li')];
+  const setStep = (step: number) => {
+    figure.dataset.step = String(step);
+    stepItems.forEach((li, i) => {
+      li.classList.toggle('is-active', i + 1 === step);
+      li.classList.toggle('is-done', i + 1 < step);
+    });
+  };
+
   whenIdle(async () => {
     const { PaperFold } = await import('../../scripts/paper-fold');
     const css = getComputedStyle(document.documentElement);
+    const lines = {
+      theirs: { text: theirs, half: 'top', color: css.getPropertyValue('--muted').trim() },
+      mine: { text: mine, half: 'top' },
+      next: { text: next, half: 'bottom' },
+    } as const;
+    const allLines = [lines.theirs, lines.mine, lines.next];
+
     const sheet = PaperFold.create(canvas, {
-      paperSrc: figure.dataset.paper!,
+      paperSrc: paper,
       font: `400 20px ${css.getPropertyValue('--font-ui')}`,
       lineHeight: 30,
       previousFolds: 2,
-      lines: [
-        { text: figure.dataset.theirs!, half: 'top', color: css.getPropertyValue('--muted').trim() },
-        { text: figure.dataset.mine!, half: 'top' },
-        { text: figure.dataset.next!, half: 'bottom' },
-      ],
+      lines: [lines.theirs],
     });
 
     if (!sheet) {
       figure.dataset.state = 'fallback';
+      setStep(5);
+      status.textContent = passOn;
       return;
     }
 
     await sheet.load();
     figure.dataset.state = 'ready';
+    button.hidden = false;
 
     // After folding, the sheet glides up into the space the folded half left — as in the app.
-    // The Peek button travels with the sheet.
-    const sheetEl = figure.querySelector<HTMLElement>('.sheet')!;
     const glideBy = () => -sheetEl.offsetHeight * 0.2;
-    const glide = { y: glideBy, duration: duration('--dur-fold') * 1.2, ease: ease('--ease-fold') };
+    const move = { duration: duration('--dur-fold') * 1.2, ease: ease('--ease-fold') };
 
-    if (reduced) {
-      sheet.setProgress(1);
-      gsap.set([sheetEl, peek], { y: glideBy });
-    } else {
-      await wait(1100); // let the line be read before it's folded away
+    // Each run of the turn gets a number; starting a new one (or folding) cancels the old one.
+    let run = 0;
+    let folded = false;
+
+    const type = async (base: readonly (typeof lines)[keyof typeof lines][], line: (typeof lines)[keyof typeof lines], myRun: number) => {
+      for (let i = 1; i <= line.text.length; i++) {
+        if (run !== myRun) return;
+        sheet.setLines([...base, { ...line, text: line.text.slice(0, i) }]);
+        await wait(line.text[i - 1] === ' ' ? 70 : 38);
+      }
+    };
+
+    // Before the fold: read what the last player left, then finish their sentence.
+    const play = async () => {
+      const myRun = ++run;
+      folded = false;
+      button.textContent = foldLabel;
+      status.textContent = '';
+      sheet.setLines([lines.theirs]);
+      setStep(1);
+
+      if (reduced) {
+        sheet.setLines([lines.theirs, lines.mine]);
+        setStep(3);
+        return;
+      }
+      await wait(1300); // time to read what the last player left
+      if (run !== myRun) return;
+      setStep(2);
+      await type([lines.theirs], lines.mine, myRun);
+      if (run !== myRun) return;
+      setStep(3); // now it's the visitor's move
+    };
+
+    // After the fold: the sheet glides up and you start the next sentence on the visible half.
+    const foldAndPass = async () => {
+      const myRun = ++run; // stops any typing still in progress
+      sheet.setLines([lines.theirs, lines.mine]);
+      setStep(3);
       await sheet.fold();
-      gsap.to([sheetEl, peek], glide);
-    }
-    peek.hidden = false;
+      if (reduced) gsap.set([sheetEl, controls], { y: glideBy });
+      else await gsap.to([sheetEl, controls], { y: glideBy, ...move });
+      folded = true;
 
-    // Peek: lift the flap for a moment, like in the app.
-    peek.addEventListener('click', async () => {
-      if (peek.disabled) return;
-      peek.disabled = true;
-      await sheet.lift();
-      await wait(1400);
-      await sheet.refold();
-      peek.disabled = false;
-      peek.focus();
+      setStep(4);
+      if (reduced) sheet.setLines(allLines);
+      else {
+        await wait(300);
+        await type([lines.theirs, lines.mine], lines.next, myRun);
+      }
+      if (run !== myRun) return;
+      setStep(5);
+      status.textContent = passOn;
+      button.textContent = replayLabel;
+    };
+
+    // Busy while animating. aria-disabled (not `disabled`) so keyboard focus stays on the button.
+    const setBusy = (busy: boolean) => button.setAttribute('aria-disabled', String(busy));
+
+    button.addEventListener('click', async () => {
+      if (button.getAttribute('aria-disabled') === 'true') return;
+      setBusy(true);
+      if (!folded) {
+        await foldAndPass();
+      } else {
+        status.textContent = '';
+        if (reduced) gsap.set([sheetEl, controls], { y: 0 });
+        else gsap.to([sheetEl, controls], { y: 0, ...move });
+        await sheet.unfold();
+        play();
+      }
+      setBusy(false);
     });
+
+    play();
   });
 </script>
 
@@ -210,7 +313,7 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 920, qual
   .sheet {
     position: relative;
     width: min(100%, 460px);
-    aspect-ratio: 460 / 540;
+    aspect-ratio: 460 / 430;
     filter: drop-shadow(0 18px 22px rgb(0 0 0 / 0.14)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
   }
 
@@ -269,13 +372,160 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 920, qual
     display: block;
   }
 
-  :global(.hero__peek) {
-    min-height: 40px;
+  /* ---------- The turn: steps above, controls below ---------- */
+  .turn,
+  .turn__controls {
+    width: min(100%, 460px);
+    padding-inline: 24px; /* line up with the sheet's paper edge */
+  }
+
+  .turn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+  }
+
+  /* Two rows of two: 1 2 / 3 4. */
+  .turn__steps {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    gap: var(--space-2) var(--space-5);
+    padding: 0;
+    list-style: none;
     font-size: var(--text-sm);
   }
 
-  :global(.hero__peek:disabled) {
+  .turn__steps li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-muted);
+    transition: color var(--dur-base) ease-out;
+  }
+
+  .turn__num {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    font-size: var(--text-xs);
+    line-height: 1;
+    transition:
+      background-color var(--dur-base) ease-out,
+      border-color var(--dur-base) ease-out,
+      color var(--dur-base) ease-out;
+  }
+
+  /* Current step: ink + filled number. Done steps: ink + outlined number. */
+  .turn__steps li:is(.is-active, .is-done) {
+    color: var(--color-text);
+  }
+
+  .turn__steps li.is-done .turn__num {
+    border-color: var(--color-text);
+  }
+
+  .turn__steps li.is-active .turn__num,
+  [data-step='5'] .turn__steps .turn__num {
+    border-color: var(--color-action);
+    background: var(--color-action);
+    color: var(--color-action-text);
+  }
+
+  .turn__controls {
+    width: min(100%, 460px);
+    padding-inline: 24px; /* line up with the sheet's paper edge */
+  }
+
+  .turn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+  }
+
+  /* Two rows of two: 1 2 / 3 4. */
+  .turn__steps {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    gap: var(--space-2) var(--space-5);
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-sm);
+  }
+
+  .turn__steps li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-muted);
+    transition: color var(--dur-base) ease-out;
+  }
+
+  .turn__num {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    font-size: var(--text-xs);
+    line-height: 1;
+    transition:
+      background-color var(--dur-base) ease-out,
+      border-color var(--dur-base) ease-out,
+      color var(--dur-base) ease-out;
+  }
+
+  /* Current step: ink + filled number. Done steps: ink. */
+  [data-step='1'] li[data-index='1'],
+  [data-step='2'] li:is([data-index='1'], [data-index='2']),
+  [data-step='3'] li,
+  [data-step='4'] li {
+    color: var(--color-text);
+  }
+
+  [data-step='1'] li[data-index='1'] .turn__num,
+  [data-step='2'] li[data-index='2'] .turn__num,
+  [data-step='3'] li[data-index='3'] .turn__num,
+  [data-step='4'] li .turn__num {
+    border-color: var(--color-action);
+    background: var(--color-action);
+    color: var(--color-action-text);
+  }
+
+  .turn__controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-height: 48px;
+  }
+
+  :global(.turn__fold) {
+    flex-shrink: 0;
+  }
+
+  :global(.turn__fold[aria-disabled='true']) {
     cursor: progress;
+  }
+
+  /* When it's time to fold, the button nudges — like the app's signature flag. */
+  [data-step='3'] :global(.turn__fold:not([aria-disabled='true'])) {
+    animation: nudge 2.4s var(--ease-settle) infinite;
+  }
+
+  @keyframes nudge {
+    0%, 70%, 100% { transform: translateY(0); }
+    80% { transform: translateY(-3px); }
+    90% { transform: translateY(0); }
+  }
+
+  .turn__status {
+    font-size: var(--text-sm);
+    color: var(--color-text-soft);
   }
 
   @media (min-width: 960px) {

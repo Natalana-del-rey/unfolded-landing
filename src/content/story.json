@@ -10,7 +10,7 @@
     "id": "phone",
     "order": 2,
     "title": "Now the paper is on everyone’s phone.",
-    "body": "You see only the start of the sentence the last player left. Finish it, begin the next one, and tap “fold the page”. The paper folds over your words.",
+    "body": "You see only the start of the sentence the last player left. Finish it and tap “fold the page”: the paper folds over your words. Then start the next sentence for whoever comes after you.",
     "visual": "phone"
   },
   {
