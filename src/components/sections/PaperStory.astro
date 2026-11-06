@@ -2,10 +2,10 @@
 /**
  * "The paper game, reinvented" — the page's one big scroll moment.
  *
- * Desktop: the visual stays in place (CSS sticky) while three steps scroll past;
- * scroll position drives the sheet (ScrollTrigger scrub → PaperFold.setProgress).
- * Phones and reduced motion: no pinning — the steps stack and the sheet is shown
- * as a still, already folded.
+ * Desktop with motion: the section pins; one scroll timeline plays the sheet (WebGL fold →
+ * phone → accordion → signatures) while the step text swaps in place beside it.
+ * Phones and reduced motion: no pinning and no WebGL — each step shows its own still
+ * picture (plain HTML/CSS): the folded paper, the phone, the signed story.
  */
 import type { CollectionEntry } from 'astro:content';
 import { getImage } from 'astro:assets';
@@ -13,6 +13,7 @@ import paperImage from '../../assets/img/paper.png';
 import Wordmark from '../../assets/img/unfolded-wordmark.svg';
 import Container from '../ui/Container.astro';
 import Heading from '../ui/Heading.astro';
+import Signatures from './Signatures.astro';
 
 interface Props {
   intro: CollectionEntry<'site'>['data']['story'];
@@ -25,19 +26,6 @@ const { intro, steps, sheet } = Astro.props;
 const paper = await getImage({ src: paperImage, format: 'webp', width: 920, quality: 80 });
 const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenButton;
 const { finalStory = [], signers = [] } = steps.find((s) => s.data.visual === 'sheet')?.data ?? {};
-// Real handwritten signatures (src/assets/img/signatures/<name>.svg), matched to the names in story.json.
-// A name without a file falls back to plain text, so editing the names can't break the page.
-const signatureFiles = import.meta.glob<string>('../../assets/img/signatures/*.svg', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-});
-const signatureFor = (name: string) => signatureFiles[`../../assets/img/signatures/${name.toLowerCase()}.svg`];
-// Drawn at 19% of the traced size, so the hands keep their natural size differences.
-const signatureWidth = (svg: string) => Number(svg.match(/width="(\d+)"/)?.[1] ?? 400) * 0.19;
-// Signed like a card everyone passed around: each name gets its own tilt and height (as in the app).
-const signatureTilt = [-4, 3, -2, 4];
-const signatureLift = [0, 6, -4, 3];
 // Each fold of the accordion holds one sentence; the last one also holds the signatures.
 const [firstLine, ...restLines] = finalStory;
 ---
@@ -56,6 +44,36 @@ const [firstLine, ...restLines] = finalStory;
         {
           steps.map(({ data }, i) => (
             <li class="story__step" data-visual={data.visual}>
+              {/* Phones and reduced motion: a still picture of this step (no WebGL). */}
+              <div class="story__still" aria-hidden="true" style={`--paper-texture: url(${paper.src})`}>
+                {data.visual === 'paper' && (
+                  <div class="still-paper">
+                    <span class="still-paper__bands" />
+                    <p>{sheet.next}</p>
+                  </div>
+                )}
+                {data.visual === 'phone' && (
+                  <div class="still-phone">
+                    <span class="still-phone__speaker" />
+                    <Wordmark class="still-phone__logo" />
+                    <div class="still-paper still-paper--small">
+                      <span class="still-paper__bands" />
+                      <p>{sheet.next}</p>
+                    </div>
+                    {screenButton && <span class="still-phone__button">{screenButton}</span>}
+                  </div>
+                )}
+                {data.visual === 'sheet' && (
+                  <div class="still-story">
+                    {finalStory.map((line) => (
+                      <p>
+                        <b>{line.join}</b> {line.rest}
+                      </p>
+                    ))}
+                    <Signatures names={signers} />
+                  </div>
+                )}
+              </div>
               <div class="story__step-inner">
               <span class="story__num" aria-hidden="true">
                 {String(i + 1).padStart(2, '0')}
@@ -103,21 +121,7 @@ const [firstLine, ...restLines] = finalStory;
                           <p>
                             <b>{line.join}</b> {line.rest}
                           </p>
-                          {i === restLines.length - 1 && (
-                            <div class="signers">
-                              {signers.map((name, j) => {
-                                const svg = signatureFor(name);
-                                const style = `--tilt: ${signatureTilt[j % 4]}deg; --lift: ${signatureLift[j % 4]}px${svg ? `; --w: ${signatureWidth(svg)}px` : ''}`;
-                                return svg ? (
-                                  <span class="signature" style={style} set:html={svg} />
-                                ) : (
-                                  <span class="signature signature--name" style={style}>
-                                    {name}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
+                          {i === restLines.length - 1 && <Signatures names={signers} />}
                         </div>
                         <span class="fold__shade" />
                         {inner}
@@ -252,13 +256,8 @@ const [firstLine, ...restLines] = finalStory;
     return () => section.classList.remove('is-scrolly');
   });
 
-  // Phones / reduced motion: no pinning; the steps stack and the sheet is a still, already folded.
-  mm.add('(max-width: 959px), (prefers-reduced-motion: reduce)', () => {
-    setFold(1);
-    gsap.set(sheetEl, { y: () => -sheetEl.offsetHeight * 0.2 });
-  });
-
-  // Load the WebGL sheet only when the section is close, so it never costs the hero anything.
+  // Load the WebGL sheet only on desktop with motion (phones get stills), and only when the
+  // section is close, so it never costs the hero anything.
   const io = new IntersectionObserver(
     (entries) => {
       if (!entries.some((e) => e.isIntersecting)) return;
@@ -267,7 +266,7 @@ const [firstLine, ...restLines] = finalStory;
     },
     { rootMargin: '600px 0px' },
   );
-  io.observe(section);
+  if (matchMedia('(min-width: 960px) and (prefers-reduced-motion: no-preference)').matches) io.observe(section);
 
   async function loadSheet() {
     const { PaperFold } = await import('../../scripts/paper-fold');
@@ -551,33 +550,137 @@ const [firstLine, ...restLines] = finalStory;
     background: #efeeea;
   }
 
-  .signers {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-evenly;
-    align-items: center;
-    gap: var(--space-4);
-    margin-block: var(--space-5) var(--space-3);
+  /* ---------- Stills (phones and reduced motion) ---------- */
+  .story__still {
+    display: none;
   }
 
-  .signature {
-    display: block;
+  @media (max-width: 959px), (prefers-reduced-motion: reduce) {
+    .story__stage {
+      display: none; /* no WebGL here: each step has its own still */
+    }
+
+    .story__steps {
+      gap: var(--space-8);
+    }
+
+    .story__still {
+      display: grid;
+      place-items: center;
+      margin-block-end: var(--space-5);
+    }
+  }
+
+  /* The folded sheet: only the bottom half shows, with earlier folds as bands along the top. */
+  .still-paper {
+    position: relative;
+    width: min(100%, 412px);
+    padding: 28px 32px 56px;
+    background: var(--paper-texture) center bottom / 100% 200% no-repeat;
+    box-shadow: 0 18px 22px rgb(0 0 0 / 0.1), 0 2px 2px rgb(0 0 0 / 0.06);
+    font: var(--weight-regular) 20px / 30px var(--font-ui);
     color: var(--color-text);
-    transform: translateY(var(--lift, 0)) rotate(var(--tilt, 0deg));
   }
 
-  /* The traced signatures keep their natural size differences (Noa writes small). */
-  .signature :global(svg) {
-    display: block;
-    width: var(--w);
+  .still-paper__bands {
+    position: absolute;
+    inset: -10px 0 auto;
+    height: 10px;
+    background: linear-gradient(rgb(255 255 255 / 0.55), transparent 45%, rgb(0 0 0 / 0.06) 80%, rgb(0 0 0 / 0.18));
+  }
+
+  .still-paper--small {
+    width: 100%;
+    padding: 14px 16px 28px;
+    font-size: 11px;
+    line-height: 16px;
+    box-shadow: 0 8px 12px rgb(0 0 0 / 0.1);
+  }
+
+  .still-paper--small .still-paper__bands {
+    inset-block-start: -6px;
+    height: 6px;
+  }
+
+  /* The app's writing screen: wordmark, the folded sheet, and the Send button. */
+  .still-phone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-5);
+    width: 220px;
+    height: 448px;
+    padding: 14px 18px;
+    border: 3px solid var(--color-text);
+    border-radius: 34px;
+  }
+
+  .still-phone__speaker {
+    width: 58px;
+    height: 16px;
+    border-radius: 8px;
+    background: var(--color-text);
+  }
+
+  .still-phone :global(.still-phone__logo) {
+    width: 84px;
     height: auto;
+    margin-block-end: var(--space-6);
+    color: var(--color-text);
   }
 
-  .signature--name {
-    font: var(--weight-medium) 20px / 1.2 var(--font-display);
+  .still-phone__button {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 36px;
+    border-radius: var(--radius-field);
+    background: var(--color-action);
+    color: var(--color-action-text);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
   }
 
-  @media (min-width: 960px) {
+  /* The finished story, unfolded and signed — creases between the sentences. */
+  .still-story {
+    width: min(100%, 412px);
+    padding: 24px 28px 12px;
+    background: var(--paper-texture) center / cover;
+    box-shadow: 0 18px 22px rgb(0 0 0 / 0.1), 0 2px 2px rgb(0 0 0 / 0.06);
+    font: var(--weight-regular) 17px / 1.6 var(--font-display);
+    color: var(--color-text);
+  }
+
+  .still-story p {
+    padding-block: 10px;
+  }
+
+  .still-story p + p {
+    border-block-start: 1px solid rgb(0 0 0 / 0.07);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  }
+
+  .still-story b {
+    font-weight: 600;
+  }
+
+  /* Reduced motion on a wide screen: each still sits beside its step's text. */
+  @media (min-width: 960px) and (prefers-reduced-motion: reduce) {
+    .story__step {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: center;
+      gap: var(--space-8);
+      max-width: none;
+    }
+
+    .story__still {
+      order: 1;
+      margin: 0;
+    }
+  }
+
+  @media (min-width: 960px) and (prefers-reduced-motion: no-preference) {
     .story__grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: start;
@@ -613,7 +716,7 @@ const [firstLine, ...restLines] = finalStory;
     }
 
     /* While scroll drives the story, signatures start unwritten (scroll writes them in). */
-    .is-scrolly .signature {
+    .is-scrolly :global(.signature) {
       clip-path: inset(-20% 100% -20% 0);
     }
   }

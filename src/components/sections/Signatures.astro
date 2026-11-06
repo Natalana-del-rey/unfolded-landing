@@ -1,0 +1,70 @@
+---
+/**
+ * Signatures — the names that signed a finished story, scattered like a card everyone signed.
+ *
+ * Real handwritten signatures live in src/assets/img/signatures/<name>.svg (traced from
+ * GPT Image 2 output). A name without a file falls back to plain text, so editing the
+ * names in story.json can't break the page.
+ */
+interface Props {
+  names: string[];
+  class?: string;
+}
+
+const { names, class: className } = Astro.props;
+
+const files = import.meta.glob<string>('../../assets/img/signatures/*.svg', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+const svgFor = (name: string) => files[`../../assets/img/signatures/${name.toLowerCase()}.svg`];
+// Drawn at 19% of the traced size, so the hands keep their natural size differences (Noa writes small).
+const widthOf = (svg: string) => Number(svg.match(/width="(\d+)"/)?.[1] ?? 400) * 0.19;
+// Each name gets its own tilt and height (as in the app).
+const tilt = [-4, 3, -2, 4];
+const lift = [0, 6, -4, 3];
+---
+
+<div class:list={['signers', className]}>
+  {
+    names.map((name, i) => {
+      const svg = svgFor(name);
+      const style = `--tilt: ${tilt[i % 4]}deg; --lift: ${lift[i % 4]}px${svg ? `; --w: ${widthOf(svg)}px` : ''}`;
+      return svg ? (
+        <span class="signature" style={style} set:html={svg} />
+      ) : (
+        <span class="signature signature--name" style={style}>
+          {name}
+        </span>
+      );
+    })
+  }
+</div>
+
+<style>
+  .signers {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    align-items: center;
+    gap: var(--space-4);
+    margin-block: var(--space-5) var(--space-3);
+  }
+
+  .signature {
+    display: block;
+    color: var(--color-text);
+    transform: translateY(var(--lift, 0)) rotate(var(--tilt, 0deg));
+  }
+
+  .signature :global(svg) {
+    display: block;
+    width: var(--w);
+    height: auto;
+  }
+
+  .signature--name {
+    font: var(--weight-medium) 20px / 1.2 var(--font-display);
+  }
+</style>
