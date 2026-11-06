@@ -1,0 +1,110 @@
+---
+/**
+ * Button — renders a real <a> when given an href (navigation),
+ * otherwise a <button> (actions). Same look either way.
+ */
+import type { HTMLAttributes } from 'astro/types';
+
+type Variant = 'primary' | 'secondary' | 'ghost';
+type Size = 'md' | 'lg';
+
+type Props = {
+  variant?: Variant;
+  size?: Size;
+  href?: string;
+  class?: string;
+} & Omit<HTMLAttributes<'button'>, 'class'> &
+  Omit<HTMLAttributes<'a'>, 'class' | 'type'>;
+
+const { variant = 'primary', size = 'md', href, class: className, ...rest } = Astro.props;
+const Tag = href ? 'a' : 'button';
+---
+
+<Tag
+  href={href}
+  type={href ? undefined : (rest.type ?? 'button')}
+  class:list={['button', `button--${variant}`, `button--${size}`, className]}
+  {...rest}
+>
+  <slot />
+</Tag>
+
+<style>
+  .button {
+    --_bg: transparent;
+    --_fg: var(--color-text);
+    --_border: transparent;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 48px; /* comfortable touch target */
+    padding: 0 var(--space-5);
+    border: 1.5px solid var(--_border);
+    border-radius: var(--radius-field);
+    background: var(--_bg);
+    color: var(--_fg);
+    font-family: var(--font-ui);
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      transform var(--dur-slow) var(--ease-settle),
+      box-shadow var(--dur-slow) var(--ease-settle),
+      background-color var(--dur-fast) ease-out,
+      color var(--dur-fast) ease-out;
+  }
+
+  .button--lg {
+    min-height: 56px;
+    padding: 0 var(--space-6);
+    font-size: var(--text-lg);
+  }
+
+  .button--primary {
+    --_bg: var(--color-action);
+    --_fg: var(--color-action-text);
+    --_border: var(--color-action);
+    box-shadow: var(--shadow-ink);
+  }
+
+  .button--secondary {
+    --_border: var(--color-border-strong);
+  }
+
+  .button--ghost {
+    padding-inline: var(--space-2);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+
+  /* Hover: the paper lifts off the table a little. */
+  @media (hover: hover) {
+    .button--primary:hover {
+      --_bg: var(--color-action-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lift);
+    }
+
+    .button--secondary:hover {
+      --_bg: var(--color-surface);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-rest);
+    }
+
+    .button--ghost:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+
+  /* Press: it goes back down onto the table. */
+  .button:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+</style>

@@ -98,6 +98,7 @@
   --color-bg: var(--ground);
   --color-surface: var(--paper);
   --color-surface-sunken: var(--paper-shade);
+  --color-surface-tag: var(--tag);
   --color-border: var(--hairline);
   --color-border-strong: var(--ink);
   --color-text: var(--ink);

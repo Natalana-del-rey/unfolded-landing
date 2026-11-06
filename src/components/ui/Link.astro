@@ -1,0 +1,51 @@
+---
+/**
+ * Link — inline text link. `external` opens a new tab and tells
+ * screen-reader users that it will.
+ */
+import type { HTMLAttributes } from 'astro/types';
+
+type Props = {
+  href: string;
+  external?: boolean;
+  variant?: 'default' | 'quiet';
+  class?: string;
+} & Omit<HTMLAttributes<'a'>, 'class' | 'href'>;
+
+const { href, external = false, variant = 'default', class: className, ...rest } = Astro.props;
+---
+
+<a
+  href={href}
+  class:list={['link', `link--${variant}`, className]}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener noreferrer' : undefined}
+  {...rest}
+>
+  <slot />{external && <span class="visually-hidden"> (opens in a new tab)</span>}
+</a>
+
+<style>
+  .link {
+    color: inherit;
+    font-weight: var(--weight-medium);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    transition:
+      text-decoration-thickness var(--dur-fast) ease-out,
+      text-underline-offset var(--dur-fast) ease-out;
+  }
+
+  .link--quiet {
+    text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  }
+
+  @media (hover: hover) {
+    .link:hover {
+      text-decoration-thickness: 2px;
+      text-decoration-color: currentColor;
+      text-underline-offset: 0.18em;
+    }
+  }
+</style>

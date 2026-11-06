@@ -1,0 +1,40 @@
+---
+/**
+ * Section — one vertical band of the page.
+ * Pass `labelledBy` with the id of the section's heading so screen readers
+ * announce the section by name.
+ */
+type Props = {
+  id?: string;
+  labelledBy?: string;
+  tone?: 'ground' | 'paper' | 'ink';
+  class?: string;
+};
+
+const { id, labelledBy, tone = 'ground', class: className } = Astro.props;
+---
+
+<section id={id} aria-labelledby={labelledBy} class:list={['section', `section--${tone}`, className]}>
+  <slot />
+</section>
+
+<style>
+  .section {
+    position: relative;
+    padding-block: var(--section-y);
+  }
+
+  .section--ground {
+    background: var(--color-bg);
+  }
+
+  .section--paper {
+    background: var(--color-surface);
+  }
+
+  .section--ink {
+    background: var(--color-action);
+    color: var(--color-text-inverse);
+    --focus-ring: 2px solid var(--color-text-inverse);
+  }
+</style>

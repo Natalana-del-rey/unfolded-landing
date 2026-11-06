@@ -1,0 +1,57 @@
+---
+/**
+ * Heading — `level` is the document structure (h1–h4, what screen readers
+ * navigate by); `size` is the look. They are set independently on purpose.
+ */
+type Level = 1 | 2 | 3 | 4;
+type Size = 'hero' | '3xl' | '2xl' | 'xl' | 'lg';
+
+type Props = {
+  level?: Level;
+  size?: Size;
+  id?: string;
+  class?: string;
+};
+
+const defaultSize: Record<Level, Size> = { 1: 'hero', 2: '3xl', 3: 'xl', 4: 'lg' };
+const { level = 2, size = defaultSize[level], id, class: className } = Astro.props;
+const Tag = `h${level}` as const;
+---
+
+<Tag id={id} class:list={['heading', `heading--${size}`, className]}>
+  <slot />
+</Tag>
+
+<style>
+  .heading {
+    font-family: var(--font-display);
+    font-weight: var(--weight-medium);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .heading--hero {
+    font-size: var(--text-hero);
+  }
+
+  .heading--3xl {
+    font-size: var(--text-3xl);
+  }
+
+  .heading--2xl {
+    font-size: var(--text-2xl);
+  }
+
+  .heading--xl {
+    font-size: var(--text-xl);
+    line-height: var(--leading-snug);
+    letter-spacing: 0;
+  }
+
+  .heading--lg {
+    font-size: var(--text-lg);
+    line-height: var(--leading-snug);
+    letter-spacing: 0;
+  }
+</style>

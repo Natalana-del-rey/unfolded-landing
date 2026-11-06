@@ -1,0 +1,706 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/ui/Section.astro';
+import Container from '../components/ui/Container.astro';
+import Heading from '../components/ui/Heading.astro';
+import Button from '../components/ui/Button.astro';
+import Card from '../components/ui/Card.astro';
+import Badge from '../components/ui/Badge.astro';
+import Link from '../components/ui/Link.astro';
+import { tokenGroups, resolveColor, contrastRatio, luminance } from '../lib/tokens';
+
+const paper = resolveColor('--paper') ?? '#f6f6f5';
+const ink = resolveColor('--ink') ?? '#141414';
+
+/**
+ * What a colour may be used for, judged in the pairing it is actually used in:
+ * light colours are surfaces (ink text sits on them), darker ones are text on paper.
+ */
+function usage(name: string, hex: string) {
+  const isTextOnInk = name.startsWith('--on-');
+  const isSurface = !isTextOnInk && luminance(hex) > 0.4;
+  const ratio = contrastRatio(hex, isSurface || isTextOnInk ? ink : paper);
+  const pairing = isTextOnInk ? 'as text on ink' : isSurface ? 'behind ink text' : 'as text on paper';
+  if (ratio >= 4.5) return { ratio, pairing, label: 'AA text' };
+  if (ratio >= 3) return { ratio, pairing, label: 'Large text / UI' };
+  return { ratio, pairing, label: 'Decoration' };
+}
+
+const sample = 'The paper folds over your words.';
+
+const nav = [
+  ['colour', 'Colour'],
+  ['type', 'Type'],
+  ['space', 'Space & layout'],
+  ['surface', 'Radii & shadows'],
+  ['motion', 'Motion'],
+  ['components', 'Components'],
+];
+---
+
+<BaseLayout
+  title="Design system — Unfolded"
+  description="The tokens and components behind the Unfolded landing page, shared with the Unfolded app."
+>
+  <header class="ds-header">
+    <Container>
+      <p class="ds-wordmark"><a href="/">unfolded</a></p>
+      <Heading level={1} size="3xl">Design system</Heading>
+      <p class="ds-lead">
+        One set of tokens shared by the Unfolded app and this landing page. Primitives keep the app's own names; components
+        only use the semantic layer on top. Every value below is read straight from
+        {' '}<code>src/styles/tokens.css</code> at build time.
+      </p>
+      <nav aria-label="Design system sections" class="ds-nav">
+        <ul>
+          {nav.map(([id, label]) => <li><a href={`#${id}`}>{label}</a></li>)}
+        </ul>
+      </nav>
+    </Container>
+  </header>
+
+  <main id="main">
+    <!-- ================= Colour ================= -->
+    <Section id="colour" labelledBy="colour-title">
+      <Container>
+        <Heading level={2} size="2xl" id="colour-title">Colour</Heading>
+        <p class="ds-intro">
+          Paper, ink and a single red for errors. Each colour's contrast is measured in the pairing it is used in: dark
+          colours as text on <code>--paper</code>, light colours as a background behind <code>--ink</code> text.
+        </p>
+
+        <Heading level={3} size="lg" class="ds-sub">Primitives</Heading>
+        <ul class="swatches" role="list">
+          {
+            tokenGroups.primitiveColors.map((t) => {
+              const u = usage(t.name, t.value);
+              return (
+                <li class="swatch">
+                  <span class="swatch__chip" style={`background: var(${t.name})`} />
+                  <code class="swatch__name">{t.name}</code>
+                  <span class="swatch__meta">
+                    {t.value.toUpperCase()} · {u.ratio}:1 {u.pairing}
+                  </span>
+                  <Badge variant={u.label === 'AA text' ? 'outline' : 'soft'}>{u.label}</Badge>
+                  {t.note && <span class="swatch__note">{t.note}</span>}
+                </li>
+              );
+            })
+          }
+        </ul>
+
+        <Heading level={3} size="lg" class="ds-sub">Semantic</Heading>
+        <table class="ds-table">
+          <caption class="visually-hidden">Semantic colour tokens and the primitive each one points to</caption>
+          <thead>
+            <tr><th scope="col">Token</th><th scope="col">Points to</th><th scope="col"><span class="visually-hidden">Preview</span></th></tr>
+          </thead>
+          <tbody>
+            {
+              tokenGroups.semanticColors.map((t) => (
+                <tr>
+                  <td><code>{t.name}</code></td>
+                  <td><code>{t.value}</code></td>
+                  <td><span class="mini-chip" style={`background: var(${t.name})`} /></td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </Container>
+    </Section>
+
+    <!-- ================= Type ================= -->
+    <Section id="type" labelledBy="type-title" tone="paper">
+      <Container>
+        <Heading level={2} size="2xl" id="type-title">Type</Heading>
+        <p class="ds-intro">
+          Frank Ruhl Libre for headings, IBM Plex Sans for reading, Newsreader for the wordmark. Sizes from
+          {' '}<code>--text-2xl</code> up are fluid — resize the window to watch them scale.
+        </p>
+
+        <ul class="families" role="list">
+          {
+            tokenGroups.fonts.map((t) => (
+              <li>
+                <span class="families__sample" style={`font-family: var(${t.name})`}>Aa</span>
+                <code>{t.name}</code>
+              </li>
+            ))
+          }
+        </ul>
+
+        <ol class="type-scale" role="list">
+          {
+            [...tokenGroups.typeScale].reverse().map((t) => (
+              <li>
+                <code class="type-scale__label">{t.name}</code>
+                <span
+                  class="type-scale__sample"
+                  style={`font-size: var(${t.name}); font-family: var(${t.name.match(/2xl|3xl|hero/) ? '--font-display' : '--font-ui'})`}
+                >
+                  {sample}
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+
+        <dl class="token-list">
+          {
+            tokenGroups.typeDetails.map((t) => (
+              <div>
+                <dt><code>{t.name}</code></dt>
+                <dd><code>{t.value}</code>{t.note && <span> — {t.note}</span>}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </Container>
+    </Section>
+
+    <!-- ================= Space & layout ================= -->
+    <Section id="space" labelledBy="space-title">
+      <Container>
+        <Heading level={2} size="2xl" id="space-title">Space &amp; layout</Heading>
+        <p class="ds-intro">The app's 4px-based scale (1–7), plus two larger steps for the landing page.</p>
+        <ul class="spacing" role="list">
+          {
+            tokenGroups.spacing.map((t) => (
+              <li>
+                <code>{t.name}</code>
+                <span class="spacing__bar" style={`width: var(${t.name})`} />
+                <code class="spacing__value">{t.value}</code>
+              </li>
+            ))
+          }
+        </ul>
+        <dl class="token-list">
+          {
+            tokenGroups.layout.map((t) => (
+              <div>
+                <dt><code>{t.name}</code></dt>
+                <dd><code>{t.value}</code>{t.note && <span> — {t.note}</span>}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </Container>
+    </Section>
+
+    <!-- ================= Radii & shadows ================= -->
+    <Section id="surface" labelledBy="surface-title" tone="paper">
+      <Container>
+        <Heading level={2} size="2xl" id="surface-title">Radii &amp; shadows</Heading>
+        <p class="ds-intro">Paper has sharp corners. Shadows say how far a sheet sits above the table.</p>
+        <ul class="tiles" role="list">
+          {
+            tokenGroups.radii.map((t) => (
+              <li class="tile tile--radius" style={`border-radius: var(${t.name})`}>
+                <code>{t.name}</code>
+                <span>{t.value}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <ul class="tiles tiles--shadows" role="list">
+          {
+            tokenGroups.shadows.map((t) => (
+              <li class="tile tile--shadow" style={`box-shadow: var(${t.name})`}>
+                <code>{t.name}</code>
+              </li>
+            ))
+          }
+        </ul>
+      </Container>
+    </Section>
+
+    <!-- ================= Motion ================= -->
+    <Section id="motion" labelledBy="motion-title">
+      <Container>
+        <Heading level={2} size="2xl" id="motion-title">Motion</Heading>
+        <p class="ds-intro">
+          The app's own timings, now named. Press a row to play it. With reduced motion turned on in your system, every
+          duration collapses to 1ms and nothing travels.
+        </p>
+        <ul class="motion" role="list">
+          {
+            tokenGroups.durations.map((t) => (
+              <li>
+                <button class="motion__row" type="button" style={`--_dur: var(${t.name}); --_ease: var(--ease-out)`}>
+                  <code>{t.name}</code>
+                  <span class="motion__track"><span class="motion__dot" /></span>
+                  <span class="motion__value">{t.value}{t.note && ` · ${t.note}`}</span>
+                </button>
+              </li>
+            ))
+          }
+          {
+            tokenGroups.easings.map((t) => (
+              <li>
+                <button class="motion__row" type="button" style={`--_dur: 900ms; --_ease: var(${t.name})`}>
+                  <code>{t.name}</code>
+                  <span class="motion__track"><span class="motion__dot" /></span>
+                  <span class="motion__value">{t.note}</span>
+                </button>
+              </li>
+            ))
+          }
+        </ul>
+      </Container>
+    </Section>
+
+    <!-- ================= Components ================= -->
+    <Section id="components" labelledBy="components-title" tone="paper">
+      <Container>
+        <Heading level={2} size="2xl" id="components-title">Components</Heading>
+        <p class="ds-intro">Seven building blocks in <code>src/components/ui/</code>. Hover and tab through them.</p>
+
+        <div class="specimen">
+          <Heading level={3} size="lg">Button</Heading>
+          <p class="specimen__note">
+            <code>variant</code>: primary · secondary · ghost — <code>size</code>: md · lg. Renders an
+            {' '}<code>&lt;a&gt;</code> when given <code>href</code>, otherwise a <code>&lt;button&gt;</code>.
+          </p>
+          <div class="specimen__row">
+            <Button>Try Unfolded</Button>
+            <Button variant="secondary">How it works</Button>
+            <Button variant="ghost">Read the FAQ</Button>
+          </div>
+          <div class="specimen__row">
+            <Button size="lg">Try Unfolded</Button>
+            <Button size="lg" variant="secondary">How it works</Button>
+            <Button size="lg" variant="ghost">Read the FAQ</Button>
+          </div>
+        </div>
+
+        <div class="specimen">
+          <Heading level={3} size="lg">Heading</Heading>
+          <p class="specimen__note"><code>level</code> (h1–h4, structure) and <code>size</code> (look) are independent.</p>
+          <div class="specimen__stack">
+            <Heading level={4} size="hero">Hero</Heading>
+            <Heading level={4} size="3xl">3xl — section title</Heading>
+            <Heading level={4} size="2xl">2xl — sub-section</Heading>
+            <Heading level={4} size="xl">xl — card title</Heading>
+            <Heading level={4} size="lg">lg — small title</Heading>
+          </div>
+        </div>
+
+        <div class="specimen specimen--ground">
+          <Heading level={3} size="lg">Card</Heading>
+          <p class="specimen__note"><code>variant</code>: paper · outline — <code>interactive</code> adds the hover lift.</p>
+          <div class="specimen__grid">
+            <Card>
+              <Heading level={4} size="xl">Paper</Heading>
+              <p>A sheet resting on the table.</p>
+            </Card>
+            <Card variant="outline">
+              <Heading level={4} size="xl">Outline</Heading>
+              <p>A quieter container.</p>
+            </Card>
+            <Card interactive>
+              <Heading level={4} size="xl">Interactive</Heading>
+              <p>Lifts on hover, or when <Link href="#components">a link inside</Link> has focus.</p>
+            </Card>
+          </div>
+        </div>
+
+        <div class="specimen">
+          <Heading level={3} size="lg">Badge</Heading>
+          <p class="specimen__note"><code>variant</code>: outline · solid · soft</p>
+          <div class="specimen__row">
+            <Badge>2–10 friends</Badge>
+            <Badge variant="solid">Last call</Badge>
+            <Badge variant="soft">Coming soon</Badge>
+          </div>
+        </div>
+
+        <div class="specimen">
+          <Heading level={3} size="lg">Link</Heading>
+          <p class="specimen__note"><code>variant</code>: default · quiet — <code>external</code> opens a new tab and says so to screen readers.</p>
+          <p class="specimen__row">
+            <Link href="#components">Default link</Link>
+            <Link href="#components" variant="quiet">Quiet link</Link>
+            <Link href="https://hire-natalie.today" external>External link</Link>
+          </p>
+        </div>
+
+        <div class="specimen">
+          <Heading level={3} size="lg">Section &amp; Container</Heading>
+          <p class="specimen__note">
+            <code>Section</code> tone: ground · paper · ink, with <code>--section-y</code> padding.
+            {' '}<code>Container</code> width: default (<code>--container-max</code>) · narrow (<code>--container-narrow</code>).
+          </p>
+          <div class="tones">
+            <div class="tones__item tones__item--ground">ground</div>
+            <div class="tones__item tones__item--paper">paper</div>
+            <div class="tones__item tones__item--ink">ink</div>
+          </div>
+        </div>
+      </Container>
+    </Section>
+  </main>
+</BaseLayout>
+
+<script>
+  // Motion demo: pressing a row sends its dot across (and back on the next press).
+  document.querySelectorAll<HTMLButtonElement>('.motion__row').forEach((row) => {
+    row.setAttribute('aria-pressed', 'false');
+    row.addEventListener('click', () => {
+      const on = row.getAttribute('aria-pressed') === 'true';
+      row.setAttribute('aria-pressed', String(!on));
+    });
+  });
+</script>
+
+<style>
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+
+  /* ---------- Header ---------- */
+  .ds-header {
+    padding-block: var(--space-8) var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .ds-wordmark {
+    margin-bottom: var(--space-6);
+    font-family: var(--font-wordmark);
+    font-size: var(--text-xl);
+  }
+
+  .ds-wordmark a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .ds-lead {
+    max-width: var(--measure);
+    margin-top: var(--space-4);
+    font-size: var(--text-lg);
+    color: var(--color-text-soft);
+  }
+
+  .ds-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin-top: var(--space-6);
+    padding: 0;
+    list-style: none;
+  }
+
+  .ds-nav a {
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    text-underline-offset: 0.3em;
+  }
+
+  .ds-intro {
+    max-width: var(--measure);
+    margin-top: var(--space-3);
+    color: var(--color-text-muted);
+  }
+
+  :global(.ds-sub) {
+    margin-top: var(--space-7);
+    margin-bottom: var(--space-4);
+  }
+
+  ul[role='list'],
+  ol[role='list'] {
+    padding: 0;
+    list-style: none;
+  }
+
+  /* ---------- Colour ---------- */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--space-5);
+  }
+
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+  }
+
+  .swatch__chip {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    margin-bottom: var(--space-2);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-rest);
+  }
+
+  .swatch__meta,
+  .swatch__note {
+    color: var(--color-text-muted);
+  }
+
+  .swatch__note {
+    font-size: var(--text-xs);
+  }
+
+  .ds-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+
+  .ds-table th {
+    padding-bottom: var(--space-2);
+    text-align: left;
+    font-weight: var(--weight-medium);
+    color: var(--color-text-muted);
+  }
+
+  .ds-table td {
+    padding-block: var(--space-2);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .mini-chip {
+    display: inline-block;
+    width: 32px;
+    height: 20px;
+    border: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+
+  /* ---------- Type ---------- */
+  .families {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6);
+    margin-top: var(--space-6);
+  }
+
+  .families li {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--text-sm);
+  }
+
+  .families__sample {
+    font-size: var(--text-3xl);
+    line-height: 1.1;
+  }
+
+  .type-scale {
+    margin-top: var(--space-7);
+  }
+
+  .type-scale li {
+    display: grid;
+    gap: var(--space-1);
+    padding-block: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .type-scale__label {
+    color: var(--color-text-muted);
+  }
+
+  .type-scale__sample {
+    line-height: var(--leading-tight);
+    overflow-wrap: anywhere;
+  }
+
+  .token-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-3) var(--space-6);
+    margin-top: var(--space-6);
+    font-size: var(--text-sm);
+  }
+
+  .token-list dd {
+    color: var(--color-text-muted);
+  }
+
+  /* ---------- Space ---------- */
+  .spacing {
+    margin-top: var(--space-6);
+  }
+
+  .spacing li {
+    display: grid;
+    grid-template-columns: 7rem 1fr 4rem;
+    align-items: center;
+    gap: var(--space-4);
+    padding-block: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  .spacing__bar {
+    height: 12px;
+    background: var(--color-text);
+  }
+
+  .spacing__value {
+    color: var(--color-text-muted);
+    text-align: right;
+  }
+
+  /* ---------- Radii & shadows ---------- */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--space-6);
+    margin-top: var(--space-6);
+  }
+
+  .tile {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: var(--space-1);
+    aspect-ratio: 4 / 3;
+    padding: var(--space-4);
+    font-size: var(--text-sm);
+  }
+
+  .tile--radius {
+    border: 1.5px solid var(--color-border-strong);
+  }
+
+  .tile--shadow {
+    background: var(--color-surface);
+  }
+
+  /* The shadows sit on the table colour so they read the way they will on the page. */
+  .tiles--shadows {
+    display: flex;
+    flex-wrap: wrap;
+    width: fit-content;
+    max-width: 100%;
+    padding: var(--space-6);
+    background: var(--color-bg);
+  }
+
+  .tiles--shadows .tile {
+    width: 180px;
+  }
+
+  /* ---------- Motion ---------- */
+  .motion {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-6);
+  }
+
+  .motion__row {
+    display: grid;
+    grid-template-columns: 9rem 1fr;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .motion__value {
+    grid-column: 2;
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+  }
+
+  .motion__track {
+    position: relative;
+    height: 2px;
+    background: var(--color-border);
+  }
+
+  .motion__dot {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    background: var(--color-text);
+    transition: left var(--_dur) var(--_ease);
+  }
+
+  .motion__row[aria-pressed='true'] .motion__dot {
+    left: calc(100% - 14px);
+  }
+
+  /* ---------- Components ---------- */
+  .specimen {
+    margin-top: var(--space-7);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .specimen--ground {
+    padding: var(--space-6);
+    background: var(--color-bg);
+    border-top: 0;
+  }
+
+  .specimen__note {
+    margin-block: var(--space-2) var(--space-5);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .specimen__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  .specimen__stack {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .specimen__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-5);
+  }
+
+  .tones {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--color-border);
+  }
+
+  .tones__item {
+    padding: var(--space-6) var(--space-4);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .tones__item--ground { background: var(--color-bg); }
+  .tones__item--paper { background: var(--color-surface); }
+  .tones__item--ink { background: var(--color-action); color: var(--color-text-inverse); }
+
+  @media (max-width: 600px) {
+    .spacing li {
+      grid-template-columns: 6rem 1fr 3rem;
+    }
+
+    .motion__row {
+      grid-template-columns: 1fr;
+    }
+
+    .motion__value {
+      grid-column: 1;
+    }
+  }
+</style>

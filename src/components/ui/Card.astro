@@ -1,0 +1,55 @@
+---
+/**
+ * Card — a sheet of paper on the table.
+ * `as` sets the element (article in a grid, li in a list).
+ * `interactive` adds the hover lift; use it only when the whole card responds.
+ */
+type Props = {
+  as?: 'article' | 'li' | 'div';
+  variant?: 'paper' | 'outline';
+  interactive?: boolean;
+  class?: string;
+};
+
+const { as: Tag = 'article', variant = 'paper', interactive = false, class: className } = Astro.props;
+---
+
+<Tag class:list={['card', `card--${variant}`, { 'card--interactive': interactive }, className]}>
+  <slot />
+</Tag>
+
+<style>
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    border-radius: var(--radius-none);
+    transition:
+      transform var(--dur-slow) var(--ease-settle),
+      box-shadow var(--dur-slow) var(--ease-settle);
+  }
+
+  .card--paper {
+    background: var(--color-surface);
+    box-shadow: var(--shadow-rest);
+  }
+
+  .card--outline {
+    border: 1px solid var(--color-border);
+  }
+
+  @media (hover: hover) {
+    .card--interactive:hover {
+      transform: translateY(-4px) rotate(-0.4deg);
+      box-shadow: var(--shadow-lift);
+    }
+  }
+
+  /* Keyboard users get the same lift when focus is anywhere inside. */
+  .card--interactive:focus-within {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lift);
+  }
+</style>
