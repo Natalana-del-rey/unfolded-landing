@@ -1,0 +1,247 @@
+---
+/**
+ * How it works — the practical, scannable version of the game: four numbered paper slips.
+ *
+ * A thin ink line joins the step numbers and fills as you scroll (scrubbed, never pinned).
+ * Each number inks in as the line reaches it. The slips themselves stay still: plain paper.
+ * Desktop: slips side by side, the line runs across. Phones: slips stacked, the line runs down.
+ * Reduced motion (or no JS): the line is full and every number is inked from the start.
+ *
+ * All motion is driven by two CSS variables per step, so one timeline works for both layouts:
+ *   --on   (number dot inked, 0–1)   --fill (line segment, 0–1)
+ */
+import type { CollectionEntry } from 'astro:content';
+import { getImage } from 'astro:assets';
+import paperImage from '../../assets/img/paper.png';
+import Container from '../ui/Container.astro';
+import Heading from '../ui/Heading.astro';
+
+interface Props {
+  intro: CollectionEntry<'site'>['data']['howItWorks'];
+  steps: CollectionEntry<'steps'>[];
+}
+
+const { intro, steps } = Astro.props;
+// Keep "4-digit" on one line: a hyphen between a digit and a word becomes a non-breaking hyphen.
+const noBreak = (text: string) => text.replace(/(\d)-(\p{L})/gu, '$1\u2011$2');
+const paper = await getImage({ src: paperImage, format: 'webp', width: 600, quality: 75 });
+---
+
+<section class="how" id="how-it-works" aria-labelledby="how-title" style={`--paper-texture: url(${paper.src})`}>
+  <Container>
+    <header class="how__intro" data-reveal>
+      <p class="eyebrow">{intro.eyebrow}</p>
+      <Heading level={2} id="how-title">{intro.title}</Heading>
+    </header>
+
+    <ol class="how__steps">
+      {
+        steps.map(({ data }, i) => (
+          <li class="how__step">
+            <span class="how__num" aria-hidden="true">
+              <span class="how__num-ink" />
+              <span class="how__num-label">{String(i + 1).padStart(2, '0')}</span>
+            </span>
+            {i < steps.length - 1 && (
+              <span class="how__seg" aria-hidden="true">
+                <span class="how__seg-fill" />
+              </span>
+            )}
+            <div class="how__slip-wrap">
+              <div class="how__slip">
+                <Heading level={3} size="xl">
+                  {data.title}
+                </Heading>
+                <p>{noBreak(data.body)}</p>
+              </div>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </Container>
+</section>
+
+<style>
+  .how {
+    --dot: 40px;
+    --step-gap: var(--space-6);
+    position: relative;
+    /* No top padding: the paper-game section above has the same background and already ends
+       with a full section gap — adding ours doubled the space. */
+    padding-block: 0 var(--section-y);
+    background: var(--color-bg);
+  }
+
+  .how__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: var(--measure);
+    margin-block-end: var(--space-8);
+  }
+
+  .how__steps {
+    display: grid;
+    gap: var(--step-gap);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Phones first: number on the inline-start, slip beside it, line running down between numbers. */
+  .how__step {
+    --on: 1;
+    --fill: 1;
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--dot) 1fr;
+    column-gap: var(--space-4);
+    align-items: start;
+  }
+
+  .how__num {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    inline-size: var(--dot);
+    block-size: var(--dot);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-bg);
+    overflow: hidden;
+  }
+
+  .how__num-ink {
+    position: absolute;
+    inset: 0;
+    background: var(--color-action);
+    opacity: var(--on);
+  }
+
+  .how__num-label {
+    position: relative;
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    line-height: 1;
+    /* Text flips to paper colour once the dot is inked (past halfway). */
+    color: color-mix(in srgb, var(--color-text-inverse) calc(var(--on) * 100%), var(--color-text));
+  }
+
+  /* The segment from this step's number to the next one's. */
+  .how__seg {
+    position: absolute;
+    inset-inline-start: calc(var(--dot) / 2 - 0.5px);
+    inset-block-start: calc(var(--dot) / 2);
+    inline-size: 1px;
+    block-size: calc(100% + var(--step-gap));
+    background: var(--color-border);
+  }
+
+  .how__seg-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-action);
+    transform-origin: top;
+    transform: scaleY(var(--fill));
+  }
+
+  /* The paper's soft shadow. */
+  .how__slip-wrap {
+    position: relative;
+    filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.06)) drop-shadow(0 10px 12px rgb(0 0 0 / 0.08));
+  }
+
+  .how__slip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    min-block-size: 100%;
+    background: var(--color-surface) var(--paper-texture) center / cover;
+  }
+
+  .how__slip p {
+    color: var(--color-text-soft);
+  }
+
+  /* Before the scroll animation takes over: line empty, dots plain.
+     Only with JS and motion allowed — otherwise the finished state above shows. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js) .how__step {
+      --on: 0;
+      --fill: 0;
+    }
+  }
+
+  /* Desktop: four slips in a row, numbers above them, the line running across. */
+  @media (min-width: 960px) {
+    .how__steps {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* Equal-height slips: each step stretches to the row, and the slip fills its step. */
+    .how__step {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      row-gap: var(--space-5);
+      align-items: stretch;
+    }
+
+    .how__num {
+      align-self: start;
+    }
+
+    .how__slip-wrap {
+      display: grid;
+    }
+
+    .how__seg {
+      inset-inline-start: var(--dot);
+      inset-block-start: calc(var(--dot) / 2 - 0.5px);
+      inline-size: calc(100% + var(--step-gap) - var(--dot));
+      block-size: 1px;
+    }
+
+    .how__seg-fill {
+      transform-origin: left;
+      transform: scaleX(var(--fill));
+    }
+
+    :global([dir='rtl']) .how__seg-fill {
+      transform-origin: right;
+    }
+
+    .how__slip {
+      padding: var(--space-6) var(--space-5);
+    }
+  }
+</style>
+
+<script>
+  import { gsap, prefersReducedMotion } from '../../scripts/motion';
+
+  const list = document.querySelector<HTMLElement>('.how__steps');
+  const steps = list ? Array.from(list.querySelectorAll<HTMLElement>('.how__step')) : [];
+
+  if (list && steps.length && !prefersReducedMotion()) {
+    const tl = gsap.timeline({
+      defaults: { ease: 'none' },
+      scrollTrigger: {
+        trigger: list,
+        // Starts once the step row is a third of the way up the screen (slips in view),
+        // finishes when the slips' bottom edge reaches the middle.
+        start: 'top 65%',
+        end: 'bottom 50%',
+        scrub: 0.6,
+      },
+    });
+
+    steps.forEach((step, i) => {
+      // Set the start explicitly — scrubbed timelines don't apply later "from" states on their own.
+      tl.fromTo(step, { '--on': 0 }, { '--on': 1, duration: 0.15 }, i);
+      if (i < steps.length - 1) tl.fromTo(step, { '--fill': 0 }, { '--fill': 1, duration: 0.85 }, i + 0.15);
+    });
+  }
+</script>
