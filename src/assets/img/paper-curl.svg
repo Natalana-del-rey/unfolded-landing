@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="40" viewBox="0 0 64 40">
+  <!-- The underside of the lifted bottom-right corner. The outer edge matches .story-paper__sheet's clip-path. -->
+  <defs>
+    <linearGradient id="under" x1="0.25" y1="0.2" x2="0.85" y2="0.95">
+      <stop offset="0" stop-color="#d9d9d6"/>
+      <stop offset="0.45" stop-color="#ebebe9"/>
+      <stop offset="1" stop-color="#fbfbfa"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
+  </defs>
+  <!-- a faint shadow the lifted flap casts back onto the sheet, just inside the fold -->
+  <path d="M62 2 Q24 16 0 38" fill="none" stroke="#000" stroke-opacity="0.09" stroke-width="3" filter="url(#soft)"/>
+  <!-- the flap: fold line (inner) to the curled outer edge -->
+  <path d="M62 2 Q26 18 0 38 Q60 30 62 2 Z" fill="url(#under)"/>
+  <path d="M62 2 Q26 18 0 38" fill="none" stroke="#000" stroke-opacity="0.07" stroke-width="0.6"/>
+</svg>
