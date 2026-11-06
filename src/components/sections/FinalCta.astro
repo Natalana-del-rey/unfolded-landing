@@ -1,0 +1,70 @@
+---
+/**
+ * FinalCta — the page's sign-off. The unicorn (in the hero's ink-line style) winks once
+ * when it scrolls into view; copy and button fade up with the shared reveal.
+ */
+import Section from '../ui/Section.astro';
+import Container from '../ui/Container.astro';
+import Heading from '../ui/Heading.astro';
+import Button from '../ui/Button.astro';
+import Mark from '../ui/Mark.astro';
+
+type Props = {
+  cta: { title: string; lead: string; primaryCta: string };
+  appUrl: string;
+};
+
+const { cta, appUrl } = Astro.props;
+---
+
+<Section tone="paper" labelledBy="final-cta-title" class="final-cta">
+  <Container width="narrow" class="final-cta__inner">
+    <div class="final-cta__group" data-reveal-group>
+      <div data-reveal-item>
+        <Mark variant="doodle" size={176} class="final-cta__mark" />
+      </div>
+      <Heading level={2} id="final-cta-title" class="final-cta__title" data-reveal-item>{cta.title}</Heading>
+      <p class="final-cta__lead" data-reveal-item>{cta.lead}</p>
+      <div data-reveal-item>
+        <Button href={appUrl} size="lg">{cta.primaryCta}</Button>
+      </div>
+    </div>
+  </Container>
+</Section>
+
+<style>
+  .final-cta__group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-5);
+    text-align: center;
+  }
+
+  .final-cta__group :global(.final-cta__mark) {
+    --mark-size: clamp(128px, 22vw, 176px) !important;
+    margin-block-end: calc(-1 * var(--space-2));
+  }
+
+  .final-cta__lead {
+    max-width: 32rem;
+    font-size: var(--text-lg);
+    color: var(--color-text-soft);
+  }
+</style>
+
+<script>
+  import { ScrollTrigger } from '../../scripts/motion';
+  import { wink } from '../../scripts/wink';
+
+  const mark = document.querySelector('.final-cta__mark');
+  if (mark) {
+    // Wink once, a beat after the unicorn has risen into place.
+    ScrollTrigger.create({
+      trigger: mark,
+      start: 'top 75%',
+      once: true,
+      onEnter: () => setTimeout(() => wink(mark), 900),
+    });
+  }
+</script>

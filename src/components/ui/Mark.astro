@@ -4,23 +4,38 @@
  * It winks on hover, on focus within its parent, and whenever a script calls
  * `wink(el)` (see src/scripts/wink.ts). The swap is instant, like a real blink
  * (the app animates it with steps(), not a fade).
+ * `variant="doodle"` is the same unicorn redrawn in the hero's ink-line style (SVG, any size).
  * Decorative: always hidden from screen readers.
  */
 import { Image } from 'astro:assets';
 import mark from '../../assets/img/mark.png';
 import markWink from '../../assets/img/mark-wink.png';
+import doodle from '../../assets/img/mark-doodle.svg?url';
+import doodleWink from '../../assets/img/mark-doodle-wink.svg?url';
 
 type Props = {
   size?: number;
+  variant?: 'app' | 'doodle';
   class?: string;
 };
 
-const { size = 64, class: className } = Astro.props;
+const { size = 64, variant = 'app', class: className } = Astro.props;
 ---
 
-<span class:list={['mark', className]} style={`--mark-size: ${size}px`} aria-hidden="true" data-mark>
-  <Image src={mark} alt="" width={size} height={size} densities={[1, 2]} class="mark__open" />
-  <Image src={markWink} alt="" width={size} height={size} densities={[1, 2]} class="mark__wink" />
+<span class:list={['mark', `mark--${variant}`, className]} style={`--mark-size: ${size}px`} aria-hidden="true" data-mark>
+  {
+    variant === 'doodle' ? (
+      <>
+        <img src={doodle} alt="" width={size} height={size} loading="lazy" decoding="async" class="mark__open" />
+        <img src={doodleWink} alt="" width={size} height={size} loading="lazy" decoding="async" class="mark__wink" />
+      </>
+    ) : (
+      <>
+        <Image src={mark} alt="" width={size} height={size} densities={[1, 2]} class="mark__open" />
+        <Image src={markWink} alt="" width={size} height={size} densities={[1, 2]} class="mark__wink" />
+      </>
+    )
+  }
 </span>
 
 <style>
@@ -37,6 +52,11 @@ const { size = 64, class: className } = Astro.props;
     inset: 0;
     width: 100%;
     height: 100%;
+  }
+
+  /* The doodle drawing isn't square (845 × 969); keep its proportions inside the box. */
+  .mark--doodle :global(img) {
+    object-fit: contain;
   }
 
   .mark__wink,

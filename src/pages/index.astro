@@ -4,10 +4,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteHeader from '../components/sections/SiteHeader.astro';
 import Hero from '../components/sections/Hero.astro';
 import PaperStory from '../components/sections/PaperStory.astro';
+import FinalCta from '../components/sections/FinalCta.astro';
+import SiteFooter from '../components/sections/SiteFooter.astro';
 
 const site = await getEntry('site', 'home');
 if (!site) throw new Error('src/content/site.json is missing the "home" entry');
-const { meta, appUrl, hero, story } = site.data;
+const { meta, appUrl, hero, story, finalCta, footer } = site.data;
 const storySteps = (await getCollection('story')).sort((a, b) => a.data.order - b.data.order);
 ---
 
@@ -16,7 +18,9 @@ const storySteps = (await getCollection('story')).sort((a, b) => a.data.order - 
   <main id="main">
     <Hero hero={hero} appUrl={appUrl} />
     <PaperStory intro={story} steps={storySteps} sheet={hero.sheet} />
+    <FinalCta cta={finalCta} appUrl={appUrl} />
   </main>
+  <SiteFooter footer={footer} />
 </BaseLayout>
 
 <script>
