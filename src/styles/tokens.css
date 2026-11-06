@@ -1,0 +1,127 @@
+/* ==========================================================================
+   Unfolded design tokens
+   --------------------------------------------------------------------------
+   Two layers:
+   1. Primitives  — raw values. Names and values are shared 1:1 with the
+                    Unfolded app (folded-story/public/style.css), so the
+                    landing page and the product speak one language.
+   2. Semantic    — what a value is FOR. Components use only these.
+   ========================================================================== */
+
+:root {
+  /* ---------- 1. Primitives: colour (from the app) ---------- */
+  --ground: #ececeb;        /* the table */
+  --paper: #f6f6f5;         /* the sheet */
+  --paper-shade: #e3e3e1;
+  --paper-crease: #d2d2cf;
+  --hairline: #bdbdba;
+  --ink: #141414;
+  --ink-soft: #3a3a3a;
+  --muted: #666666;         /* 5.3:1 on paper — OK for body text */
+  --faint: #8c8c8c;         /* 3.1:1 on paper — decoration only, never text */
+  --disabled: #e0e0de;
+  --tag: #dcdcda;
+  --on-ink: #f6f6f5;
+  --signal: #a8261b;        /* errors only */
+
+  /* ---------- Primitives: type families ---------- */
+  --font-wordmark: "Newsreader Variable", "Newsreader", "Times New Roman", serif;
+  --font-display: "Frank Ruhl Libre", "Times New Roman", serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ---------- Primitives: spacing (app scale 1–7, landing adds 8–9) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  /* ---------- Primitives: radii (paper has sharp corners) ---------- */
+  --radius-none: 0;
+  --radius-dot: 2px;
+  --radius-field: 3px;
+
+  /* ---------- Primitives: shadows (from the app) ---------- */
+  --shadow-rest: 0 1px 1px rgba(0, 0, 0, 0.06), 0 10px 18px -10px rgba(0, 0, 0, 0.22);
+  --shadow-lift: 0 2px 3px rgba(0, 0, 0, 0.06), 0 22px 32px -14px rgba(0, 0, 0, 0.3);
+  --shadow-ink: 0 1px 0 rgba(0, 0, 0, 0.25);
+
+  /* ---------- Type scale ----------
+     Fixed sizes come straight from the app (13/14/16/19/24).
+     Large sizes are fluid: they grow with the viewport between a
+     mobile minimum (360px wide) and a desktop maximum (1280px wide). */
+  --text-xs: 0.8125rem;                                   /* 13px */
+  --text-sm: 0.875rem;                                    /* 14px */
+  --text-md: 1rem;                                        /* 16px */
+  --text-lg: 1.1875rem;                                   /* 19px */
+  --text-xl: 1.5rem;                                      /* 24px */
+  --text-2xl: clamp(1.75rem, 1.31rem + 1.96vw, 2.875rem); /* 28 → 46px */
+  --text-3xl: clamp(2.5rem, 1.91rem + 2.61vw, 4rem);      /* 40 → 64px */
+  --text-hero: clamp(3rem, 1.83rem + 5.22vw, 6rem);       /* 48 → 96px */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --leading-tight: 1.05;    /* display headings */
+  --leading-snug: 1.25;     /* small headings */
+  --leading-body: 1.55;     /* paragraphs */
+  --tracking-tight: -0.02em;
+  --tracking-label: 0.08em; /* uppercase labels / badges */
+
+  --measure: 62ch;          /* comfortable line length for reading */
+
+  /* ---------- Layout ---------- */
+  --container-max: 1200px;
+  --container-narrow: 760px;
+  --gutter: clamp(var(--space-4), 4vw, var(--space-7));      /* 16 → 48px */
+  --section-y: clamp(var(--space-8), 10vw, 128px);           /* 64 → 128px */
+
+  /* ---------- Motion (values from the app, now named) ---------- */
+  --dur-fast: 160ms;        /* colour / hover */
+  --dur-base: 240ms;        /* fades */
+  --dur-slow: 320ms;        /* movement */
+  --dur-fold: 520ms;        /* folds, reveals */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);     /* entrances */
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);  /* things coming to rest */
+  --ease-fold: cubic-bezier(0.4, 0, 0.2, 1);      /* paper turning */
+  --reveal-distance: 16px;  /* how far things travel when they fade in */
+
+  /* ==========================================================================
+     2. Semantic tokens — components use ONLY these
+     ========================================================================== */
+  --color-bg: var(--ground);
+  --color-surface: var(--paper);
+  --color-surface-sunken: var(--paper-shade);
+  --color-border: var(--hairline);
+  --color-border-strong: var(--ink);
+  --color-text: var(--ink);
+  --color-text-soft: var(--ink-soft);
+  --color-text-muted: var(--muted);
+  --color-text-inverse: var(--on-ink);
+  --color-action: var(--ink);
+  --color-action-hover: var(--ink-soft);
+  --color-action-text: var(--on-ink);
+  --color-error: var(--signal);
+
+  --focus-ring: 2px solid var(--ink);
+  --focus-offset: 3px;
+}
+
+/* Reduced motion: every duration collapses to (almost) zero and nothing travels.
+   Components that use the tokens get this for free. GSAP checks the same
+   preference in src/scripts/motion.ts. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --dur-fold: 1ms;
+    --reveal-distance: 0px;
+  }
+}
