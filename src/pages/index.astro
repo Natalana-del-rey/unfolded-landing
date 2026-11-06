@@ -1,20 +1,17 @@
 ---
-import { getCollection, getEntry } from 'astro:content';
+import { getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/sections/SiteHeader.astro';
+import Hero from '../components/sections/Hero.astro';
 
-// Temporary: proves the content collections load. Replaced by real sections next.
 const site = await getEntry('site', 'home');
 if (!site) throw new Error('src/content/site.json is missing the "home" entry');
-const counts = await Promise.all(
-  (['story', 'features', 'steps', 'faq', 'testimonials'] as const).map(
-    async (name) => `${name}: ${(await getCollection(name)).length}`,
-  ),
-);
+const { meta, appUrl, hero } = site.data;
 ---
 
-<BaseLayout title={site.data.meta.title} description={site.data.meta.description}>
+<BaseLayout title={meta.title} description={meta.description}>
+  <SiteHeader appUrl={appUrl} ctaLabel={hero.primaryCta} />
   <main id="main">
-    <h1>{site.data.hero.title}</h1>
-    <ul>{counts.map((c) => <li>{c}</li>)}</ul>
+    <Hero hero={hero} appUrl={appUrl} />
   </main>
 </BaseLayout>

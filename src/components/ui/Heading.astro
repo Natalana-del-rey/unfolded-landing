@@ -11,14 +11,15 @@ type Props = {
   size?: Size;
   id?: string;
   class?: string;
+  [attr: `data-${string}`]: string | boolean | undefined;
 };
 
 const defaultSize: Record<Level, Size> = { 1: 'hero', 2: '3xl', 3: 'xl', 4: 'lg' };
-const { level = 2, size = defaultSize[level], id, class: className } = Astro.props;
+const { level = 2, size = defaultSize[level], id, class: className, ...rest } = Astro.props;
 const Tag = `h${level}` as const;
 ---
 
-<Tag id={id} class:list={['heading', `heading--${size}`, className]}>
+<Tag id={id} class:list={['heading', `heading--${size}`, className]} {...rest}>
   <slot />
 </Tag>
 

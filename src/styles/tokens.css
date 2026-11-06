@@ -65,7 +65,7 @@
   --text-xl: 1.5rem;                                      /* 24px */
   --text-2xl: clamp(1.75rem, 1.31rem + 1.96vw, 2.875rem); /* 28 → 46px */
   --text-3xl: clamp(2.5rem, 1.91rem + 2.61vw, 4rem);      /* 40 → 64px */
-  --text-hero: clamp(3rem, 1.83rem + 5.22vw, 6rem);       /* 48 → 96px */
+  --text-hero: clamp(3rem, 2.41rem + 2.61vw, 4.5rem);    /* 48 → 72px */
 
   --weight-regular: 400;
   --weight-medium: 500;

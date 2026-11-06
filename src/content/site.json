@@ -11,12 +11,31 @@
       "title": "Everyone writes a line. Nobody’s to blame.",
       "lead": "Write one story together on your phones. You only see the last few words before your turn, then you fold the page and pass it on. At the end, everyone reads the whole thing out loud.",
       "primaryCta": "Try Unfolded",
-      "secondaryCta": { "label": "How it works", "href": "#how-it-works" },
+      "secondaryCta": {
+        "label": "How it works",
+        "href": "#how-it-works"
+      },
       "specs": [
-        { "value": "2–10", "label": "friends" },
-        { "value": "6–12", "label": "rounds" },
-        { "value": "1", "label": "story, signed by all" }
-      ]
+        {
+          "value": "2–10",
+          "label": "friends"
+        },
+        {
+          "value": "6–12",
+          "label": "rounds"
+        },
+        {
+          "value": "1",
+          "label": "story, signed by all"
+        }
+      ],
+      "sheet": {
+        "theirs": "On a stormy night,",
+        "mine": "Natalie found an old letter under the door.",
+        "next": "Inside, in tiny handwriting, it said",
+        "caption": "A sheet of paper folds over the line just written, leaving only the start of the next sentence for the next player.",
+        "peekLabel": "Peek"
+      }
     },
     "story": {
       "eyebrow": "The paper game, reinvented",
@@ -47,8 +66,14 @@
       "credit": "Designed & built by Natalie Tarnovsky",
       "creditUrl": "https://hire-natalie.today",
       "links": [
-        { "label": "Design system", "href": "/design-system" },
-        { "label": "Source on GitHub", "href": "https://github.com/Natalana-del-rey/unfolded-landing" }
+        {
+          "label": "Design system",
+          "href": "/design-system"
+        },
+        {
+          "label": "Source on GitHub",
+          "href": "https://github.com/Natalana-del-rey/unfolded-landing"
+        }
       ]
     }
   }

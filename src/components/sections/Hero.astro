@@ -1,0 +1,291 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getImage } from 'astro:assets';
+import paperImage from '../../assets/img/paper.png';
+import Container from '../ui/Container.astro';
+import Heading from '../ui/Heading.astro';
+import Button from '../ui/Button.astro';
+
+interface Props {
+  hero: CollectionEntry<'site'>['data']['hero'];
+  appUrl: string;
+}
+
+const { hero, appUrl } = Astro.props;
+
+// The app's paper texture is a 1.6 MB PNG; Astro re-encodes it as a small WebP at build time.
+const paper = await getImage({ src: paperImage, format: 'webp', width: 920, quality: 80 });
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <Container class="hero__grid">
+    <div class="hero__copy">
+      <p class="eyebrow" data-hero-item>{hero.eyebrow}</p>
+      <Heading level={1} id="hero-title" class="hero__title" data-hero-title>{hero.title}</Heading>
+      <p class="hero__lead" data-hero-item>{hero.lead}</p>
+
+      <div class="hero__actions" data-hero-item>
+        <Button href={appUrl} size="lg">{hero.primaryCta}</Button>
+        <Button href={hero.secondaryCta.href} size="lg" variant="ghost">{hero.secondaryCta.label}</Button>
+      </div>
+
+      <dl class="hero__specs" data-hero-item>
+        {
+          hero.specs.map((spec) => (
+            <div>
+              <dt>{spec.label}</dt>
+              <dd>{spec.value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+
+    <figure
+      class="hero__visual"
+      data-state="loading"
+      data-paper={paper.src}
+      data-theirs={hero.sheet.theirs}
+      data-mine={hero.sheet.mine}
+      data-next={hero.sheet.next}
+      style={`--paper-texture: url(${paper.src})`}
+    >
+      <div class="sheet">
+        <canvas class="sheet__canvas" aria-hidden="true"></canvas>
+        <!-- Shown if WebGL isn't available (or JS is off): the sheet, already folded. -->
+        <div class="sheet__fallback" aria-hidden="true">
+          <span class="sheet__bands"></span>
+          <p>{hero.sheet.next}</p>
+        </div>
+      </div>
+      <figcaption class="visually-hidden">{hero.sheet.caption}</figcaption>
+      <Button variant="secondary" class="hero__peek" hidden>{hero.sheet.peekLabel}</Button>
+    </figure>
+  </Container>
+</section>
+
+<script>
+  import { gsap, duration, ease, revealDistance, prefersReducedMotion, showImmediately } from '../../scripts/motion';
+
+  const reduced = prefersReducedMotion();
+
+  // ---- Entrance: the headline settles into place; the rest fades up after it.
+  if (reduced) {
+    showImmediately('[data-hero-item]');
+  } else {
+    gsap
+      .timeline({ defaults: { ease: ease('--ease-out'), duration: duration('--dur-fold') * 1.5 } })
+      .fromTo('[data-hero-title]', { y: 28 }, { y: 0 }, 0)
+      .fromTo('[data-hero-item]', { y: revealDistance() }, { opacity: 1, y: 0, stagger: 0.09 }, 0.12)
+      .fromTo('.hero__visual', { y: revealDistance() * 2, rotate: -1.5 }, { y: 0, rotate: 0 }, 0.2);
+  }
+
+  // ---- The fold: loaded after the page is idle so it never delays the first paint.
+  const figure = document.querySelector<HTMLElement>('.hero__visual')!;
+  const canvas = figure.querySelector<HTMLCanvasElement>('canvas')!;
+  const peek = figure.querySelector<HTMLButtonElement>('.hero__peek')!;
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const whenIdle = (fn: () => void) =>
+    'requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300);
+
+  whenIdle(async () => {
+    const { PaperFold } = await import('../../scripts/paper-fold');
+    const css = getComputedStyle(document.documentElement);
+    const sheet = PaperFold.create(canvas, {
+      paperSrc: figure.dataset.paper!,
+      font: `400 20px ${css.getPropertyValue('--font-ui')}`,
+      lineHeight: 30,
+      previousFolds: 2,
+      lines: [
+        { text: figure.dataset.theirs!, half: 'top', color: css.getPropertyValue('--muted').trim() },
+        { text: figure.dataset.mine!, half: 'top' },
+        { text: figure.dataset.next!, half: 'bottom' },
+      ],
+    });
+
+    if (!sheet) {
+      figure.dataset.state = 'fallback';
+      return;
+    }
+
+    await sheet.load();
+    figure.dataset.state = 'ready';
+
+    // After folding, the sheet glides up into the space the folded half left — as in the app.
+    // The Peek button travels with the sheet.
+    const sheetEl = figure.querySelector<HTMLElement>('.sheet')!;
+    const glideBy = () => -sheetEl.offsetHeight * 0.2;
+    const glide = { y: glideBy, duration: duration('--dur-fold') * 1.2, ease: ease('--ease-fold') };
+
+    if (reduced) {
+      sheet.setProgress(1);
+      gsap.set([sheetEl, peek], { y: glideBy });
+    } else {
+      await wait(1100); // let the line be read before it's folded away
+      await sheet.fold();
+      gsap.to([sheetEl, peek], glide);
+    }
+    peek.hidden = false;
+
+    // Peek: lift the flap for a moment, like in the app.
+    peek.addEventListener('click', async () => {
+      if (peek.disabled) return;
+      peek.disabled = true;
+      await sheet.lift();
+      await wait(1400);
+      await sheet.refold();
+      peek.disabled = false;
+      peek.focus();
+    });
+  });
+</script>
+
+<style>
+  .hero {
+    padding-block: var(--space-6) var(--section-y);
+    overflow-x: clip;
+  }
+
+  :global(.hero__grid) {
+    display: grid;
+    gap: var(--space-8);
+    align-items: center;
+  }
+
+  .hero__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-5);
+  }
+
+  .hero__lead {
+    max-width: 34rem;
+    font-size: var(--text-lg);
+    color: var(--color-text-soft);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-4);
+    margin-top: var(--space-2);
+  }
+
+  .hero__specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4) var(--space-7);
+    margin-top: var(--space-4);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* Value above label, as in the app; the DOM keeps the correct dt → dd order. */
+  .hero__specs div {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .hero__specs dd {
+    margin: 0;
+    font-family: var(--font-wordmark);
+    font-size: 1.75rem;
+    line-height: 1.15;
+  }
+
+  .hero__specs dt {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  /* ---------- The sheet ---------- */
+  .hero__visual {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
+    margin: 0;
+  }
+
+  .sheet {
+    position: relative;
+    width: min(100%, 460px);
+    aspect-ratio: 460 / 540;
+    filter: drop-shadow(0 18px 22px rgb(0 0 0 / 0.14)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+  }
+
+  /* Blank paper shows instantly; the WebGL sheet fades in over it, pixel-matched. */
+  .sheet::before {
+    content: '';
+    position: absolute;
+    inset: 6px 24px 4px;
+    background: var(--paper-texture) center / 100% 100% no-repeat;
+  }
+
+  .sheet__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity var(--dur-fold) var(--ease-out);
+  }
+
+  [data-state='ready'] .sheet__canvas {
+    opacity: 1;
+  }
+
+  /* Once the real sheet is drawn, the placeholder paper goes — otherwise it
+     would show through where the folded half used to be. */
+  [data-state='ready'] .sheet::before {
+    opacity: 0;
+    transition: opacity 0s var(--dur-fold);
+  }
+
+  /* Fallback: the folded sheet as plain HTML. */
+  .sheet__fallback {
+    position: absolute;
+    inset: 50% 24px 4px;
+    display: none;
+    padding: 28px 32px;
+    background: var(--paper-texture) center bottom / 100% 200% no-repeat;
+    font: var(--weight-regular) 20px / 30px var(--font-ui);
+  }
+
+  .sheet__bands {
+    position: absolute;
+    inset: -10px 0 auto;
+    height: 10px;
+    background: linear-gradient(rgb(255 255 255 / 0.55), transparent 45%, rgb(0 0 0 / 0.06) 80%, rgb(0 0 0 / 0.18));
+  }
+
+  [data-state='fallback'] .sheet::before,
+  html:not(.js) .sheet::before {
+    display: none;
+  }
+
+  [data-state='fallback'] .sheet__fallback,
+  html:not(.js) .sheet__fallback {
+    display: block;
+  }
+
+  :global(.hero__peek) {
+    min-height: 40px;
+    font-size: var(--text-sm);
+  }
+
+  :global(.hero__peek:disabled) {
+    cursor: progress;
+  }
+
+  @media (min-width: 960px) {
+    :global(.hero__grid) {
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+      gap: var(--space-8);
+    }
+
+    .hero {
+      padding-top: var(--space-6);
+    }
+  }
+</style>

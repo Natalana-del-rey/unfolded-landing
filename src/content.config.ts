@@ -38,6 +38,14 @@ const site = defineCollection({
       primaryCta: z.string(),
       secondaryCta: cta,
       specs: z.array(z.object({ value: z.string(), label: z.string() })),
+      /** The words written on the hero's folding sheet. */
+      sheet: z.object({
+        theirs: z.string(), // the previous player's start (muted)
+        mine: z.string(), // how you finished it (ink) — this half folds away
+        next: z.string(), // the start you leave for the next player — stays visible
+        caption: z.string(), // describes the animation for screen readers
+        peekLabel: z.string(),
+      }),
     }),
     story: sectionIntro,
     features: sectionIntro,

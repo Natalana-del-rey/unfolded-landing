@@ -1,0 +1,77 @@
+---
+import Wordmark from '../../assets/img/unfolded-wordmark.svg';
+import Container from '../ui/Container.astro';
+import Button from '../ui/Button.astro';
+
+interface Props {
+  appUrl: string;
+  ctaLabel: string;
+}
+
+const { appUrl, ctaLabel } = Astro.props;
+---
+
+<header class="site-header">
+  <Container class="site-header__inner">
+    <a href="/" class="site-header__logo" aria-label="Unfolded — home">
+      <Wordmark aria-hidden="true" role="presentation" />
+    </a>
+    <nav aria-label="Main" class="site-header__nav">
+      <a href="#how-it-works">How it works</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <Button href={appUrl} class="site-header__cta">{ctaLabel}</Button>
+  </Container>
+</header>
+
+<style>
+  .site-header {
+    padding-block: var(--space-4);
+  }
+
+  :global(.site-header__inner) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+  }
+
+  .site-header__logo {
+    display: block;
+    margin-inline-end: auto;
+    padding-block: var(--space-2);
+  }
+
+  .site-header__logo :global(svg) {
+    width: auto;
+    height: 26px;
+  }
+
+  .site-header__nav {
+    display: none;
+    gap: var(--space-5);
+  }
+
+  .site-header__nav a {
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    text-underline-offset: 0.3em;
+  }
+
+  .site-header__nav a:hover {
+    text-decoration: underline;
+  }
+
+  :global(.site-header__cta) {
+    min-height: 40px;
+    padding-inline: var(--space-4);
+    font-size: var(--text-sm);
+  }
+
+  @media (min-width: 640px) {
+    .site-header__nav {
+      display: flex;
+    }
+  }
+</style>
