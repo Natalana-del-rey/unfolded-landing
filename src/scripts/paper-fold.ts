@@ -17,6 +17,19 @@ export interface PaperLine {
   color?: string;
 }
 
+/** An image printed faintly onto the paper, like an ink stamp. It bends with the sheet. */
+export interface PaperStamp {
+  src: string;
+  /** Optional second image to swap in (e.g. the unicorn's wink). */
+  altSrc?: string;
+  /** Size in CSS px. */
+  size: number;
+  /** 0–1. Low values read as ink soaked into paper. */
+  opacity: number;
+  /** Degrees; a hand-pressed stamp is never quite straight. */
+  rotate: number;
+}
+
 export interface PaperFoldOptions {
   /** URL of the paper texture. */
   paperSrc: string;
@@ -26,6 +39,8 @@ export interface PaperFoldOptions {
   /** CSS font for the words, e.g. '400 20px "IBM Plex Sans"'. */
   font: string;
   lineHeight: number;
+  /** Printed in the bottom-right corner of the bottom half, so it stays visible after the fold. */
+  stamp?: PaperStamp;
 }
 
 const VS = `
@@ -93,6 +108,9 @@ export class PaperFold {
   private texture: WebGLTexture;
   private indexCount = 0;
   private paper = new Image();
+  private stampImage = new Image();
+  private stampAltImage = new Image();
+  private stampAlt = false;
   private width = 0;
   private height = 0;
   private dpr = 1;
@@ -128,13 +146,30 @@ export class PaperFold {
   /** Resolves once the paper and fonts are ready and the first frame is drawn. */
   async load(): Promise<void> {
     this.paper.src = this.options.paperSrc;
-    await Promise.all([this.paper.decode(), document.fonts.load(this.options.font)]);
+    const { stamp } = this.options;
+    const images = [this.paper.decode(), document.fonts.load(this.options.font)];
+    if (stamp) {
+      this.stampImage.src = stamp.src;
+      images.push(this.stampImage.decode());
+      if (stamp.altSrc) {
+        this.stampAltImage.src = stamp.altSrc;
+        images.push(this.stampAltImage.decode());
+      }
+    }
+    await Promise.all(images);
     this.layout();
   }
 
   /** Replace the words on the sheet (e.g. one more letter while typing) and redraw. */
   setLines(lines: PaperLine[]): void {
     this.options = { ...this.options, lines };
+    this.paint();
+    this.draw();
+  }
+
+  /** Swap the stamp to its alternate image (e.g. the wink) and back. */
+  setStampAlt(on: boolean): void {
+    this.stampAlt = on;
     this.paint();
     this.draw();
   }
@@ -285,11 +320,30 @@ export class PaperFold {
       }
     }
 
+    this.paintStamp(g, x1, H);
+
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tc);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  }
+
+  /** The stamp: multiplied into the paper like ink, slightly rotated, in the bottom-right corner. */
+  private paintStamp(g: CanvasRenderingContext2D, right: number, H: number): void {
+    const { stamp } = this.options;
+    if (!stamp) return;
+    const image = this.stampAlt && stamp.altSrc ? this.stampAltImage : this.stampImage;
+    if (!image.naturalWidth) return;
+    const cx = right - PAD_X - stamp.size / 2 + 8;
+    const cy = H - 4 - PAD_X - stamp.size / 2 + 8;
+    g.save();
+    g.globalAlpha = stamp.opacity;
+    g.globalCompositeOperation = 'multiply';
+    g.translate(cx, cy);
+    g.rotate((stamp.rotate * Math.PI) / 180);
+    g.drawImage(image, -stamp.size / 2, -stamp.size / 2, stamp.size, stamp.size);
+    g.restore();
   }
 
   private draw(): void {

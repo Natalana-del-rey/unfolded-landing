@@ -2,6 +2,8 @@
 import type { CollectionEntry } from 'astro:content';
 import { getImage } from 'astro:assets';
 import paperImage from '../../assets/img/paper.png';
+import markImage from '../../assets/img/mark.png';
+import markWinkImage from '../../assets/img/mark-wink.png';
 import Container from '../ui/Container.astro';
 import Heading from '../ui/Heading.astro';
 import Button from '../ui/Button.astro';
@@ -17,6 +19,11 @@ const { hero, appUrl } = Astro.props;
 
 // The app's paper texture is a 1.6 MB PNG; Astro re-encodes it as a small WebP at build time.
 const paper = await getImage({ src: paperImage, format: 'webp', width: 920, quality: 80 });
+
+// DESIGN COMPARISON (temporary): ?mark=stamp prints the unicorn on the paper instead of
+// perching it beside the steps. One version will be removed once Natalie picks.
+const stamp = await getImage({ src: markImage, format: 'webp', width: 240 });
+const stampWink = await getImage({ src: markWinkImage, format: 'webp', width: 240 });
 
 const { sheet } = hero;
 // The sheet is a canvas, so screen readers get the same turn described in words.
@@ -58,6 +65,8 @@ const description = `An example turn. The last player left “${sheet.theirs}”
       data-fold-label={sheet.foldLabel}
       data-replay-label={sheet.replayLabel}
       data-pass-on={sheet.passOn}
+      data-stamp={stamp.src}
+      data-stamp-wink={stampWink.src}
       style={`--paper-texture: url(${paper.src})`}
     >
       <!-- A playable turn: the steps light up as they happen; the visitor does the fold. -->
@@ -120,7 +129,13 @@ const description = `An example turn. The last player left “${sheet.theirs}”
   const controls = figure.querySelector<HTMLElement>('.turn__controls')!;
   const button = figure.querySelector<HTMLButtonElement>('.turn__fold')!;
   const status = figure.querySelector<HTMLElement>('.turn__status')!;
-  const { paper, theirs, mine, next, foldLabel, replayLabel, passOn } = figure.dataset as Record<string, string>;
+  const { paper, theirs, mine, next, foldLabel, replayLabel, passOn, stamp, stampWink } = figure.dataset as Record<
+    string,
+    string
+  >;
+  // DESIGN COMPARISON (temporary): which unicorn version to show.
+  const stampMode = new URLSearchParams(location.search).get('mark') === 'stamp';
+  if (stampMode) figure.classList.add('is-stamp');
 
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const whenIdle = (fn: () => void) =>
@@ -152,6 +167,7 @@ const description = `An example turn. The last player left “${sheet.theirs}”
       lineHeight: 30,
       previousFolds: 2,
       lines: [lines.theirs],
+      stamp: stampMode ? { src: stamp, altSrc: stampWink, size: 116, opacity: 0.16, rotate: -9 } : undefined,
     });
 
     if (!sheet) {
@@ -209,7 +225,13 @@ const description = `An example turn. The last player left “${sheet.theirs}”
       sheet.setLines([lines.theirs, lines.mine]);
       setStep(3);
       await sheet.fold();
-      wink(figure.querySelector('[data-mark]')); // your secret's safe
+      // Your secret's safe.
+      if (stampMode) {
+        sheet.setStampAlt(true);
+        setTimeout(() => sheet.setStampAlt(false), 700);
+      } else {
+        wink(figure.querySelector('[data-mark]'));
+      }
       if (reduced) gsap.set([sheetEl, controls], { y: glideBy });
       else await gsap.to([sheetEl, controls], { y: glideBy, ...move });
       folded = true;
@@ -402,6 +424,10 @@ const description = `An example turn. The last player left “${sheet.theirs}”
 
   .turn__steps {
     grid-area: steps;
+  }
+
+  .is-stamp :global(.turn__mark) {
+    display: none;
   }
 
   :global(.turn__mark) {
