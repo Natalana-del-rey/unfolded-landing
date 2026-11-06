@@ -24,20 +24,39 @@ interface Props {
 const { intro, steps, sheet } = Astro.props;
 const paper = await getImage({ src: paperImage, format: 'webp', width: 920, quality: 80 });
 const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenButton;
+const { finalStory = [], signers = [] } = steps.find((s) => s.data.visual === 'sheet')?.data ?? {};
+// Real handwritten signatures (src/assets/img/signatures/<name>.svg), matched to the names in story.json.
+// A name without a file falls back to plain text, so editing the names can't break the page.
+const signatureFiles = import.meta.glob<string>('../../assets/img/signatures/*.svg', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+const signatureFor = (name: string) => signatureFiles[`../../assets/img/signatures/${name.toLowerCase()}.svg`];
+// Drawn at 19% of the traced size, so the hands keep their natural size differences.
+const signatureWidth = (svg: string) => Number(svg.match(/width="(\d+)"/)?.[1] ?? 400) * 0.19;
+// Signed like a card everyone passed around: each name gets its own tilt and height (as in the app).
+const signatureTilt = [-4, 3, -2, 4];
+const signatureLift = [0, 6, -4, 3];
+// Each fold of the accordion holds one sentence; the last one also holds the signatures.
+const [firstLine, ...restLines] = finalStory;
 ---
 
 <section class="story" id="paper-game" aria-labelledby="story-title">
   <Container>
-    <header class="story__intro" data-reveal>
-      <p class="eyebrow">{intro.eyebrow}</p>
-      <Heading level={2} id="story-title">{intro.title}</Heading>
-    </header>
-
     <div class="story__grid">
+      <!-- The heading lives with the steps, so it stays in place when the section pins. -->
+      <div class="story__copy">
+      <header class="story__intro" data-reveal>
+        <p class="eyebrow">{intro.eyebrow}</p>
+        <Heading level={2} id="story-title">{intro.title}</Heading>
+      </header>
+
       <ol class="story__steps">
         {
           steps.map(({ data }, i) => (
-            <li class="story__step" data-visual={data.visual} class:list={[{ 'is-active': i === 0 }]}>
+            <li class="story__step" data-visual={data.visual}>
+              <div class="story__step-inner">
               <span class="story__num" aria-hidden="true">
                 {String(i + 1).padStart(2, '0')}
               </span>
@@ -45,10 +64,12 @@ const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenBu
                 {data.title}
               </Heading>
               <p>{data.body}</p>
+              </div>
             </li>
           ))
         }
       </ol>
+      </div>
 
       <!-- Decorative: the steps' text says everything the picture shows. -->
       <div class="story__stage" aria-hidden="true">
@@ -63,7 +84,51 @@ const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenBu
         >
           <div class="story__sheet">
             <canvas class="story__canvas"></canvas>
+
           </div>
+
+          <!-- Step 3: the folded strip opens like an accordion — one sentence per fold — and everyone signs. -->
+          {
+            firstLine && (
+              <div class="accordion">
+                <span class="accordion__layers" />
+                <div class="fold">
+                  <p class="fold__face">
+                    <b>{firstLine.join}</b> {firstLine.rest}
+                  </p>
+                  {restLines.reduceRight<any>(
+                    (inner, line, i) => (
+                      <div class="fold fold--hinged" data-fold={i + 1}>
+                        <div class="fold__face">
+                          <p>
+                            <b>{line.join}</b> {line.rest}
+                          </p>
+                          {i === restLines.length - 1 && (
+                            <div class="signers">
+                              {signers.map((name, j) => {
+                                const svg = signatureFor(name);
+                                const style = `--tilt: ${signatureTilt[j % 4]}deg; --lift: ${signatureLift[j % 4]}px${svg ? `; --w: ${signatureWidth(svg)}px` : ''}`;
+                                return svg ? (
+                                  <span class="signature" style={style} set:html={svg} />
+                                ) : (
+                                  <span class="signature signature--name" style={style}>
+                                    {name}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <span class="fold__shade" />
+                        {inner}
+                      </div>
+                    ),
+                    null,
+                  )}
+                </div>
+              </div>
+            )
+          }
 
           <!-- Step 2: a phone draws in around the folded sheet — the app's writing screen. -->
           <div class="phone">
@@ -81,30 +146,133 @@ const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenBu
 </section>
 
 <script>
-  import { gsap, ScrollTrigger } from '../../scripts/motion';
+  import { gsap } from '../../scripts/motion';
+  import type { PaperFold } from '../../scripts/paper-fold';
 
   const section = document.querySelector<HTMLElement>('.story')!;
+  const grid = section.querySelector<HTMLElement>('.story__grid')!;
   const visual = section.querySelector<HTMLElement>('.story__visual')!;
   const sheetEl = section.querySelector<HTMLElement>('.story__sheet')!;
   const canvas = section.querySelector<HTMLCanvasElement>('.story__canvas')!;
   const steps = [...section.querySelectorAll<HTMLElement>('.story__step')];
   const { paper, theirs, mine, next } = visual.dataset as Record<string, string>;
 
+  // The WebGL sheet loads lazily (below); until then, and without WebGL, scroll still drives
+  // everything else. `fold` remembers where the fold should be so the sheet can catch up.
+  let sheet: PaperFold | null = null;
+  const fold = { progress: 0 };
+  const setFold = (p: number) => {
+    fold.progress = p;
+    sheet?.setProgress(p);
+  };
+
+  const mm = gsap.matchMedia();
+
+  // Desktop with motion: the section pins in place; scrolling plays the story while the
+  // text on the left swaps in place, step by step. Set up straight away (not lazily) so the
+  // page has its full scroll length from the start — reloading mid-section lands correctly.
+  mm.add('(min-width: 960px) and (prefers-reduced-motion: no-preference)', () => {
+    section.classList.add('is-scrolly');
+
+    const accordion = section.querySelector<HTMLElement>('.accordion')!;
+    const hinged = [...section.querySelectorAll<HTMLElement>('.fold--hinged')];
+    const firstFold = section.querySelector<HTMLElement>('.fold__face')!;
+    const boxH = () => sheetEl.offsetHeight;
+    // Keep the strip centred while it grows: centred as one fold, centred again fully open.
+    const openH = () =>
+      firstFold.offsetHeight +
+      hinged.reduce((h, f) => h + f.querySelector<HTMLElement>(':scope > .fold__face')!.offsetHeight, 0);
+
+    // Timeline units ≈ half a screen of scroll each (see `end`).
+    const S1 = 0; // the paper game: fold, then glide up
+    const S2 = 1.15; // onto the phone
+    const S3 = 2.3; // unfold together (gets the most room)
+    const LEN3 = 1.85;
+    const END = S3 + LEN3 + 0.3; // + a short hold on the signed story
+
+    const tl = gsap.timeline({
+      defaults: { ease: 'none' },
+      scrollTrigger: {
+        trigger: grid,
+        start: 'center center',
+        end: () => `+=${END * 0.5 * innerHeight}`,
+        pin: true,
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    });
+
+    // Text swaps in place: the outgoing step lifts away, the next one rises in.
+    const swap = (from: HTMLElement, to: HTMLElement, at: number) =>
+      tl
+        .to(from, { opacity: 0, y: -16, duration: 0.12 }, at)
+        .fromTo(to, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.12 }, at + 0.08);
+
+    // Step 1 — the sheet folds over the top lines, then glides up into the space the folded half left.
+    tl.fromTo(fold, { progress: 0 }, { progress: 1, duration: 0.75, onUpdate: () => setFold(fold.progress) }, S1)
+      .fromTo(sheetEl, { y: 0 }, { y: () => -sheetEl.offsetHeight * 0.2, duration: 0.25 }, S1 + 0.75);
+
+    // Step 2 — the folded sheet shrinks to screen size, then a phone outline draws in around it;
+    // the app's wordmark and "Send" button appear last.
+    swap(steps[0], steps[1], S2 - 0.1);
+    tl.to(sheetEl, { scale: 0.5, duration: 0.47 }, S2)
+      .fromTo(section.querySelector('.phone__outline rect'), { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 0.51 }, S2 + 0.26)
+      .fromTo(section.querySelectorAll('.phone__part'), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.17, stagger: 0.05 }, S2 + 0.64);
+
+    // Step 3 — the phone fades, the folded sheet becomes a folded strip, the strip opens like an
+    // accordion (one sentence per fold), then everyone signs.
+    const at3 = (t: number) => S3 + t * LEN3; // positions as fractions of step 3
+    swap(steps[1], steps[2], S3 - 0.1);
+    tl.fromTo(section.querySelector('.phone'), { opacity: 1 }, { opacity: 0, duration: 0.1 * LEN3 }, at3(0))
+      .fromTo(sheetEl, { opacity: 1 }, { opacity: 0, duration: 0.1 * LEN3 }, at3(0.05))
+      .fromTo(
+        accordion,
+        { opacity: 0, y: () => (boxH() - firstFold.offsetHeight) / 2 },
+        { opacity: 1, duration: 0.1 * LEN3 },
+        at3(0.07),
+      )
+      // a short pause on the folded strip, then it opens
+      .to(accordion, { y: () => (boxH() - openH()) / 2, duration: 0.56 * LEN3, ease: 'power1.inOut' }, at3(0.22))
+      .to(section.querySelector('.accordion__layers'), { opacity: 0, duration: 0.1 * LEN3 }, at3(0.22));
+    hinged.forEach((f, i) => {
+      const at = at3(0.22 + i * 0.19);
+      // Hidden until its turn: nested folds add up their tilts, so a waiting fold could face the viewer.
+      tl.fromTo(f, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.001 }, at)
+        .fromTo(f, { rotateX: -110 }, { rotateX: 0, duration: 0.2 * LEN3, ease: 'power2.out' }, at)
+        .fromTo(f.querySelector(':scope > .fold__shade'), { opacity: 0.5 }, { opacity: 0, duration: 0.2 * LEN3 }, at);
+    });
+    // The signatures write themselves in, left to right, one after another.
+    tl.fromTo(
+      section.querySelectorAll('.signature'),
+      { clipPath: 'inset(-20% 100% -20% 0)' },
+      { clipPath: 'inset(-20% 0% -20% 0)', duration: 0.05 * LEN3, stagger: 0.04 * LEN3 },
+      at3(0.8),
+    ).to({}, { duration: 0.3 }, S3 + LEN3); // hold
+
+    return () => section.classList.remove('is-scrolly');
+  });
+
+  // Phones / reduced motion: no pinning; the steps stack and the sheet is a still, already folded.
+  mm.add('(max-width: 959px), (prefers-reduced-motion: reduce)', () => {
+    setFold(1);
+    gsap.set(sheetEl, { y: () => -sheetEl.offsetHeight * 0.2 });
+  });
+
   // Load the WebGL sheet only when the section is close, so it never costs the hero anything.
   const io = new IntersectionObserver(
     (entries) => {
       if (!entries.some((e) => e.isIntersecting)) return;
       io.disconnect();
-      start();
+      loadSheet();
     },
     { rootMargin: '600px 0px' },
   );
   io.observe(section);
 
-  async function start() {
+  async function loadSheet() {
     const { PaperFold } = await import('../../scripts/paper-fold');
     const css = getComputedStyle(document.documentElement);
-    const sheet = PaperFold.create(canvas, {
+    const created = PaperFold.create(canvas, {
       paperSrc: paper,
       font: `400 20px ${css.getPropertyValue('--font-ui')}`,
       lineHeight: 30,
@@ -114,86 +282,35 @@ const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenBu
         { text: next, half: 'bottom' },
       ],
     });
-    if (!sheet) {
+    if (!created) {
       visual.dataset.state = 'fallback';
       return;
     }
-    await sheet.load();
+    await created.load();
+    sheet = created;
+    sheet.setProgress(fold.progress); // catch up with wherever scroll already is
     visual.dataset.state = 'ready';
-
-    const mm = gsap.matchMedia();
-
-    // Desktop with motion: scroll drives the story.
-    mm.add('(min-width: 960px) and (prefers-reduced-motion: no-preference)', () => {
-      section.classList.add('is-scrolly');
-
-      // The step nearest the middle of the screen is the one in focus.
-      steps.forEach((step) => {
-        ScrollTrigger.create({
-          trigger: step,
-          start: 'top 55%',
-          end: 'bottom 55%',
-          onToggle: ({ isActive }) => isActive && steps.forEach((s) => s.classList.toggle('is-active', s === step)),
-        });
-      });
-
-      // Step 1 — the paper game: the sheet folds over the top lines as you read,
-      // then glides up into the space the folded half left (as in the app).
-      ScrollTrigger.create({
-        trigger: steps[0],
-        start: 'top 55%',
-        end: 'bottom 45%',
-        scrub: true,
-        onUpdate: ({ progress }) => {
-          const fold = Math.min(1, progress / 0.75);
-          const glide = Math.max(0, (progress - 0.75) / 0.25);
-          sheet.setProgress(fold);
-          gsap.set(sheetEl, { y: -sheetEl.offsetHeight * 0.2 * glide });
-        },
-      });
-
-      // Step 2 — onto the phone: the folded sheet shrinks to screen size while a phone
-      // outline draws in around it; the app's wordmark and "Send" button appear last.
-      gsap
-        .timeline({
-          defaults: { ease: 'none' },
-          scrollTrigger: { trigger: steps[1], start: 'top 55%', end: 'center 45%', scrub: true },
-        })
-        // The sheet shrinks first, so the outline never cuts across it while drawing.
-        .to(sheetEl, { scale: 0.5, duration: 0.55 }, 0)
-        .fromTo(section.querySelector('.phone__outline rect'), { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 0.6 }, 0.3)
-        .fromTo(
-          section.querySelectorAll('.phone__part'),
-          { opacity: 0, y: 8 },
-          { opacity: 1, y: 0, duration: 0.2, stagger: 0.06 },
-          0.75,
-        );
-
-      return () => {
-        section.classList.remove('is-scrolly');
-        steps.forEach((s, i) => s.classList.toggle('is-active', i === 0));
-      };
-    });
-
-    // Phones / reduced motion: a still of the folded sheet.
-    mm.add('(max-width: 959px), (prefers-reduced-motion: reduce)', () => {
-      sheet.setProgress(1);
-      gsap.set(sheetEl, { y: -sheetEl.offsetHeight * 0.2 });
-    });
   }
 </script>
 
 <style>
+  /* The hero above already ends with a section's worth of space, so no extra gap on top. */
   .story {
-    padding-block: var(--section-y);
+    padding-block: 0 var(--section-y);
+  }
+
+  /* Phones: the column wrapper steps aside so the order is heading → picture → steps. */
+  .story__copy {
+    display: contents;
   }
 
   .story__intro {
+    order: -2;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
     max-width: var(--measure);
-    margin-block-end: var(--space-8);
+    margin-block-end: var(--space-7);
   }
 
   .story__grid {
@@ -212,11 +329,16 @@ const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenBu
   .story__step {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
     max-width: 34rem;
   }
 
-  .story__step p {
+  .story__step-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .story__step-inner p {
     font-size: var(--text-lg);
     color: var(--color-text-soft);
   }
@@ -347,6 +469,114 @@ const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenBu
     font-weight: var(--weight-medium);
   }
 
+  /* ---------- Step 3: the accordion ---------- */
+  .accordion {
+    position: absolute;
+    inset: 0 24px auto;
+    perspective: 1100px;
+    transform-style: preserve-3d;
+    opacity: 0; /* shown by scroll */
+  }
+
+  .fold {
+    position: relative;
+    transform-style: preserve-3d;
+  }
+
+  /* Each fold hangs from the bottom edge of the one above it. */
+  .fold--hinged {
+    position: absolute;
+    inset: 100% 0 auto;
+    transform-origin: top center;
+  }
+
+  .fold__face {
+    position: relative;
+    padding: 14px 32px;
+    background: var(--paper-texture) center / cover;
+    box-shadow: 0 10px 18px rgb(0 0 0 / 0.08);
+    font: var(--weight-regular) 18px / 1.6 var(--font-display);
+    color: var(--color-text);
+  }
+
+  .accordion > .fold > .fold__face {
+    padding-block-start: 28px;
+  }
+
+  /* A soft crease along the top of every fold. */
+  .fold--hinged > .fold__face::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 10px;
+    background: linear-gradient(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.5) 45%, transparent);
+  }
+
+  .fold__face b {
+    font-weight: 600;
+  }
+
+  /* Darkens a fold while it's turned away from the light. */
+  .fold__shade {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 100%;
+    background: rgb(0 0 0 / 1);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* The folded strip: the rest of the sheet peeks out underneath as layers. */
+  .accordion__layers {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 100%;
+  }
+
+  .accordion__layers::before,
+  .accordion__layers::after {
+    content: '';
+    position: absolute;
+    height: 10px;
+    background: #f5f4f1;
+    box-shadow: 0 2px 4px rgb(0 0 0 / 0.08);
+  }
+
+  .accordion__layers::before {
+    inset: auto 6px -5px;
+  }
+
+  .accordion__layers::after {
+    inset: auto 12px -10px;
+    background: #efeeea;
+  }
+
+  .signers {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    align-items: center;
+    gap: var(--space-4);
+    margin-block: var(--space-5) var(--space-3);
+  }
+
+  .signature {
+    display: block;
+    color: var(--color-text);
+    transform: translateY(var(--lift, 0)) rotate(var(--tilt, 0deg));
+  }
+
+  /* The traced signatures keep their natural size differences (Noa writes small). */
+  .signature :global(svg) {
+    display: block;
+    width: var(--w);
+    height: auto;
+  }
+
+  .signature--name {
+    font: var(--weight-medium) 20px / 1.2 var(--font-display);
+  }
+
   @media (min-width: 960px) {
     .story__grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -356,30 +586,35 @@ const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenBu
 
     .story__stage {
       order: 0;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      height: 100svh;
     }
 
-    /* Each step gets about half a screen of scroll: enough for the sheet to change, not so much it feels empty. */
-    .story__step {
-      min-height: 55vh;
-      justify-content: center;
+    .story__copy {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-7);
+      align-self: center;
     }
 
-    .story__steps {
-      gap: 0;
+    .story__intro {
+      margin-block-end: 0;
     }
 
-    /* Only while scroll is driving the story: the step in focus is full strength. */
+    /* Pinned (desktop, motion allowed): the steps share one spot beside the paper and swap in place. */
+    .is-scrolly .story__steps {
+      display: grid;
+    }
+
     .is-scrolly .story__step {
-      opacity: 0.28;
-      transition: opacity var(--dur-slow) var(--ease-out);
+      grid-area: 1 / 1;
     }
 
-    .is-scrolly .story__step.is-active {
-      opacity: 1;
+    .is-scrolly .story__step:not(:first-child) {
+      opacity: 0;
+    }
+
+    /* While scroll drives the story, signatures start unwritten (scroll writes them in). */
+    .is-scrolly .signature {
+      clip-path: inset(-20% 100% -20% 0);
     }
   }
 </style>

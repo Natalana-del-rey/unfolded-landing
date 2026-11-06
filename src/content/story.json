@@ -19,6 +19,30 @@
     "order": 3,
     "title": "Then you unfold it together.",
     "body": "After the last line, everyone gets the same story on one sheet of paper, signed by everyone who wrote it. Someone reads it out loud.",
-    "visual": "sheet"
+    "visual": "sheet",
+    "finalStory": [
+      {
+        "join": "On a stormy night,",
+        "rest": "Natalie found an old letter under the door."
+      },
+      {
+        "join": "Inside, in tiny handwriting, it said",
+        "rest": "the cat had been paying the rent for years."
+      },
+      {
+        "join": "Nobody believed it",
+        "rest": "until the landlord sent the cat a thank-you card."
+      },
+      {
+        "join": "By morning,",
+        "rest": "the whole building wanted cat lessons."
+      }
+    ],
+    "signers": [
+      "Maya",
+      "Tom",
+      "Noa",
+      "Eli"
+    ]
   }
 ]

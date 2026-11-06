@@ -78,6 +78,10 @@ const story = defineCollection({
     visual: z.enum(['paper', 'phone', 'sheet']),
     /** The button drawn on the phone in the visual (the app's label after you fold: "Send"). */
     screenButton: z.string().optional(),
+    /** The finished story shown on the unfolded sheet. `join` = the start the previous player left (bold, as in the app). */
+    finalStory: z.array(z.object({ join: z.string(), rest: z.string() })).optional(),
+    /** Who signed it — sample names for the demo. */
+    signers: z.array(z.string()).optional(),
   }),
 });
 
