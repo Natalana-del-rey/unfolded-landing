@@ -20,8 +20,8 @@ const { hero, appUrl } = Astro.props;
 // The app's paper texture is a 1.6 MB PNG; Astro re-encodes it as a small WebP at build time.
 const paper = await getImage({ src: paperImage, format: 'webp', width: 920, quality: 80 });
 
-// DESIGN COMPARISON (temporary): ?mark=stamp prints the unicorn on the paper instead of
-// perching it beside the steps. One version will be removed once Natalie picks.
+// The unicorn is printed on the paper like an ink stamp (default).
+// Alternative kept on purpose: ?mark=perch shows it beside the steps instead, winking clearly on fold.
 const stamp = await getImage({ src: markImage, format: 'webp', width: 240 });
 const stampWink = await getImage({ src: markWinkImage, format: 'webp', width: 240 });
 
@@ -133,9 +133,9 @@ const description = `An example turn. The last player left “${sheet.theirs}”
     string,
     string
   >;
-  // DESIGN COMPARISON (temporary): which unicorn version to show.
-  const stampMode = new URLSearchParams(location.search).get('mark') === 'stamp';
-  if (stampMode) figure.classList.add('is-stamp');
+  // Unicorn placement: stamp on the paper (default) or ?mark=perch beside the steps.
+  const stampMode = new URLSearchParams(location.search).get('mark') !== 'perch';
+  if (!stampMode) figure.classList.add('is-perch');
 
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const whenIdle = (fn: () => void) =>
@@ -426,8 +426,14 @@ const description = `An example turn. The last player left “${sheet.theirs}”
     grid-area: steps;
   }
 
-  .is-stamp :global(.turn__mark) {
+  /* Hidden unless ?mark=perch, so it never flashes before the script runs.
+     Scoped under .turn so it outranks the Mark component's own display rule. */
+  .turn :global(.turn__mark) {
     display: none;
+  }
+
+  .is-perch .turn :global(.turn__mark) {
+    display: inline-block;
   }
 
   :global(.turn__mark) {
