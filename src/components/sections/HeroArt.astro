@@ -1,0 +1,218 @@
+---
+/**
+ * HeroArt — a folded page of the app's real paper, and the absurd story escaping from it.
+ *
+ * The doodles and their flight paths are traced from a GPT Image 2 drawing
+ * (src/assets/img/hero/pieces/*.svg) and keep their original composition: one S-curve
+ * from the page up to the whale. The page is HTML (the app's paper texture in 3D), placed
+ * in % of the same box as the drawing, so everything stays in place at any size.
+ * Decorative: the hero's text says what the game is.
+ */
+import { getImage } from 'astro:assets';
+import { getEntry } from 'astro:content';
+import paperImage from '../../assets/img/paper.png';
+import '@fontsource/klee-one/600.css'; // the whale's handwriting (Japanese)
+
+const files = import.meta.glob<string>('../../assets/img/hero/pieces/*.svg', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+const piece = (name: string) => {
+  const svg = files[`../../assets/img/hero/pieces/${name}.svg`];
+  return svg.match(/ d="([^"]+)"/)![1];
+};
+
+// Every doodle sits where it was in the original drawing (the drawing's own coordinates).
+const doodles = [
+  { name: 'key', x: 217, y: 96 },
+  { name: 'whale', x: 518, y: -3 },
+  { name: 'umbrella', x: 158, y: 372 },
+  { name: 'lighthouse', x: 743, y: 307 },
+  { name: 'plane', x: 413, y: 672 },
+];
+
+// The flight paths, split into their separate strokes and grouped by the doodle each one
+// leads to, in the order the story escapes: page → plane → lighthouse → umbrella → key → whale.
+const trailStrokes = piece('trails').split(/(?=M)/).filter((d) => d.trim());
+const TRAIL_STEPS = [[0, 2, 1, 3], [6, 7], [4, 5], [8, 9], [10]];
+const FLOW = ['plane', 'lighthouse', 'umbrella', 'key', 'whale'];
+
+// The folded page: the app's paper, with the story's last line faintly on the top fold.
+const paper = await getImage({ src: paperImage, format: 'webp', width: 700, quality: 80 });
+const story = (await getEntry('story', 'sheet'))?.data.finalStory ?? [];
+const lastLine = story.at(-1);
+---
+
+<div class="hero-art" aria-hidden="true">
+  <div class="hero-art__box">
+    <!-- The page, still folded: its layers show along the edge; the top fold lifts and the
+         story escapes from it. The drawing sits on top, so the flight path rises over it. -->
+    <div class="folded" style={`--paper-texture: url(${paper.src})`}>
+      {[5, 4, 3, 2, 1].map((i) => <span class="folded__layer" style={`--i: ${i}`} />)}
+      <div class="folded__top">
+        {
+          lastLine && (
+            <p>
+              <b>{lastLine.join}</b> {lastLine.rest}
+            </p>
+          )
+        }
+      </div>
+    </div>
+
+    <svg viewBox="-790 -50 1810 1340" preserveAspectRatio="xMaxYMax meet">
+      <!-- The drawing's own flight paths: one S-curve carrying everything out of the story. -->
+      <g class="trails">
+        {TRAIL_STEPS.map((strokes, step) => strokes.map((i) => <path d={trailStrokes[i]} data-step={step} />))}
+      </g>
+
+      {
+        doodles.map((d) => (
+          <g class="doodle" data-doodle={d.name} data-step={FLOW.indexOf(d.name)} transform={`translate(${d.x} ${d.y})`}>
+            <path d={piece(d.name)} fill-rule="evenodd" />
+          </g>
+        ))
+      }
+
+      <!-- The whale, carrying a chair, asks: "Seen my chair?" The tail ends at its nose. -->
+      <g class="bubble" lang="ja">
+        <path class="bubble__shape" d="M 527 159 A 80 54 0 1 0 490 171 Q 506 220 514 268 Q 520 208 527 159 Z" />
+        <text x="476" y="111" text-anchor="middle">私の椅子、</text>
+        <text x="476" y="146" text-anchor="middle">見た？</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<script>
+  import { gsap, prefersReducedMotion } from '../../scripts/motion';
+
+  // The story escapes: the top fold lifts, then each flight path appears and the thing at
+  // its end pops out, one after another up the S-curve, ending with the whale's question.
+  // Reduced motion: nothing is hidden (see CSS), so the finished picture just shows.
+  const art = document.querySelector<HTMLElement>('.hero-art');
+  if (art && !prefersReducedMotion()) {
+    const steps = 5;
+    const tl = gsap.timeline({ delay: 0.5, defaults: { ease: 'power2.out' } });
+    tl.to(art, { '--lift': '-22deg', duration: 0.5, ease: 'back.out(2)' });
+    for (let step = 0; step < steps; step++) {
+      tl.to(art.querySelectorAll(`.trails [data-step="${step}"]`), { opacity: 1, duration: 0.18, stagger: 0.08 }, '>-0.05');
+      tl.fromTo(
+        art.querySelector(`.doodle[data-step="${step}"]`),
+        { opacity: 0, scale: 0.4, rotate: -12, transformOrigin: '50% 50%' },
+        { opacity: 1, scale: 1, rotate: 0, duration: 0.5, ease: 'back.out(1.8)' },
+        '>-0.06',
+      );
+    }
+    tl.fromTo(
+      art.querySelector('.bubble'),
+      { opacity: 0, scale: 0.3, transformOrigin: '85% 100%' },
+      { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(2.2)' },
+      '>-0.1',
+    );
+  }
+</script>
+
+<style>
+  /* The box keeps the drawing's proportions and sits bottom-right, so the HTML page can be
+     placed in % of the same coordinate space as the SVG. */
+  .hero-art {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    height: 100%;
+    container-type: size;
+  }
+
+  .hero-art__box {
+    position: relative;
+    width: min(100cqw, 100cqh * 1810 / 1340);
+    aspect-ratio: 1810 / 1340;
+    container-type: inline-size;
+  }
+
+  .hero-art svg {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    color: var(--color-text);
+  }
+
+  /* Waiting to escape (only when JS runs and motion is allowed; the script reveals them). */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js) .hero-art {
+      --lift: 0deg;
+    }
+
+    :global(.js) .hero-art .trails path,
+    :global(.js) .hero-art .doodle[data-step],
+    :global(.js) .hero-art .bubble {
+      opacity: 0;
+    }
+  }
+
+  /* ---- The folded page ---- */
+  .folded {
+    position: absolute;
+    left: 42%;
+    top: 85%;
+    width: 42%;
+    aspect-ratio: 4.2 / 1;
+    transform: translate(-50%, -50%) perspective(70cqw) rotateX(56deg) rotateZ(-14deg);
+    transform-style: preserve-3d;
+  }
+
+  /* The folds underneath: each a little lower and nearer, so their edges show as thin bands. */
+  .folded__layer {
+    position: absolute;
+    inset: 0;
+    background: var(--paper-texture) center / cover no-repeat;
+    transform: translate3d(0, calc(var(--i) * 0.42cqw), calc(var(--i) * -0.5cqw));
+    box-shadow: inset 0 -0.3cqw 0.4cqw rgb(0 0 0 / calc(0.04 * var(--i)));
+  }
+
+  .folded__layer[style*='--i: 5'] {
+    box-shadow: 0 1.6cqw 2.4cqw rgb(0 0 0 / 0.18);
+  }
+
+  /* The top fold, hinged at its near edge, its far edge lifted: the story escapes from it. */
+  .folded__top {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    align-items: center;
+    padding: 0 3cqw;
+    background: var(--paper-texture) center / cover no-repeat;
+    transform-origin: bottom;
+    transform: translateZ(0.3cqw) rotateX(var(--lift, -22deg));
+    box-shadow: 0 0.8cqw 1.2cqw rgb(0 0 0 / 0.12);
+  }
+
+  .folded__top p {
+    margin: 0;
+    font: var(--weight-regular) 1.2cqw / 1.4 var(--font-ui);
+    color: rgb(20 20 20 / 0.7);
+    filter: blur(0.07cqw);
+  }
+
+  /* ---- The drawing ---- */
+  .trails path,
+  .doodle path {
+    fill: currentColor;
+  }
+
+  .bubble__shape {
+    fill: var(--color-bg);
+    stroke: currentColor;
+    stroke-width: 4.5;
+    stroke-linejoin: round;
+  }
+
+  .bubble text {
+    font: 600 25px 'Klee One', var(--font-ui);
+    fill: currentColor;
+  }
+</style>

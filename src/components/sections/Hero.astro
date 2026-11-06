@@ -1,14 +1,9 @@
 ---
 import type { CollectionEntry } from 'astro:content';
-import { getImage } from 'astro:assets';
-import paperImage from '../../assets/img/paper.png';
-import markImage from '../../assets/img/mark.png';
-import markWinkImage from '../../assets/img/mark-wink.png';
 import Container from '../ui/Container.astro';
 import Heading from '../ui/Heading.astro';
 import Button from '../ui/Button.astro';
-import Badge from '../ui/Badge.astro';
-import Mark from '../ui/Mark.astro';
+import HeroArt from './HeroArt.astro';
 
 interface Props {
   hero: CollectionEntry<'site'>['data']['hero'];
@@ -16,18 +11,6 @@ interface Props {
 }
 
 const { hero, appUrl } = Astro.props;
-
-// The app's paper texture is a 1.6 MB PNG; Astro re-encodes it as a small WebP at build time.
-const paper = await getImage({ src: paperImage, format: 'webp', width: 920, quality: 80 });
-
-// The unicorn is printed on the paper like an ink stamp (default).
-// Alternative kept on purpose: ?mark=perch shows it beside the steps instead, winking clearly on fold.
-const stamp = await getImage({ src: markImage, format: 'webp', width: 240 });
-const stampWink = await getImage({ src: markWinkImage, format: 'webp', width: 240 });
-
-const { sheet } = hero;
-// The sheet is a canvas, so screen readers get the same turn described in words.
-const description = `An example turn. The last player left “${sheet.theirs}”. You finish it with “${sheet.mine}” and fold the page over your words. Then you start the next sentence, “${sheet.next}”, which is all the next player will see.`;
 ---
 
 <section class="hero" aria-labelledby="hero-title">
@@ -54,220 +37,26 @@ const description = `An example turn. The last player left “${sheet.theirs}”
       </dl>
     </div>
 
-    <figure
-      class="hero__visual"
-      data-state="loading"
-      data-step="0"
-      data-paper={paper.src}
-      data-theirs={sheet.theirs}
-      data-mine={sheet.mine}
-      data-next={sheet.next}
-      data-fold-label={sheet.foldLabel}
-      data-replay-label={sheet.replayLabel}
-      data-pass-on={sheet.passOn}
-      data-stamp={stamp.src}
-      data-stamp-wink={stampWink.src}
-      style={`--paper-texture: url(${paper.src})`}
-    >
-      <!-- A playable turn: the steps light up as they happen; the visitor does the fold. -->
-      <div class="turn" aria-hidden="true">
-        <Badge variant="solid" class="turn__label">{sheet.turnLabel}</Badge>
-        <!-- Your fellow player. Winks at you when you fold the page. -->
-        <Mark size={72} class="turn__mark" />
-        <ol class="turn__steps">
-          {
-            sheet.steps.map((step, i) => (
-              <li data-index={i + 1}>
-                <span class="turn__num">{i + 1}</span>
-                {step}
-              </li>
-            ))
-          }
-        </ol>
-      </div>
-
-      <div class="sheet">
-        <canvas class="sheet__canvas" aria-hidden="true"></canvas>
-        <!-- Shown if WebGL isn't available (or JS is off): the sheet, already folded. -->
-        <div class="sheet__fallback" aria-hidden="true">
-          <span class="sheet__bands"></span>
-          <p>{sheet.next}</p>
-        </div>
-      </div>
-
-      <div class="turn__controls">
-        <Button variant="secondary" class="turn__fold" hidden>{sheet.foldLabel}</Button>
-        <p class="turn__status" aria-live="polite"></p>
-      </div>
-
-      <figcaption class="visually-hidden">{description}</figcaption>
-    </figure>
+    <!-- The story escaping from a folded page (decorative: the copy says what the game is). -->
+    <div class="hero__art">
+      <HeroArt />
+    </div>
   </Container>
 </section>
 
 <script>
   import { gsap, duration, ease, revealDistance, prefersReducedMotion, showImmediately } from '../../scripts/motion';
-  import { wink } from '../../scripts/wink';
-
-  const reduced = prefersReducedMotion();
 
   // ---- Entrance: the headline settles into place; the rest fades up after it.
-  if (reduced) {
+  // (The art has its own entrance — the story escaping the fold — in HeroArt.)
+  if (prefersReducedMotion()) {
     showImmediately('[data-hero-item]');
   } else {
     gsap
       .timeline({ defaults: { ease: ease('--ease-out'), duration: duration('--dur-fold') * 1.5 } })
       .fromTo('[data-hero-title]', { y: 28 }, { y: 0 }, 0)
-      .fromTo('[data-hero-item]', { y: revealDistance() }, { opacity: 1, y: 0, stagger: 0.09 }, 0.12)
-      .fromTo('.hero__visual', { y: revealDistance() * 2, rotate: -1.5 }, { y: 0, rotate: 0 }, 0.2);
+      .fromTo('[data-hero-item]', { y: revealDistance() }, { opacity: 1, y: 0, stagger: 0.09 }, 0.12);
   }
-
-  // ---- The playable turn, loaded after the page is idle so it never delays the first paint.
-  const figure = document.querySelector<HTMLElement>('.hero__visual')!;
-  const canvas = figure.querySelector<HTMLCanvasElement>('canvas')!;
-  const sheetEl = figure.querySelector<HTMLElement>('.sheet')!;
-  const controls = figure.querySelector<HTMLElement>('.turn__controls')!;
-  const button = figure.querySelector<HTMLButtonElement>('.turn__fold')!;
-  const status = figure.querySelector<HTMLElement>('.turn__status')!;
-  const { paper, theirs, mine, next, foldLabel, replayLabel, passOn, stamp, stampWink } = figure.dataset as Record<
-    string,
-    string
-  >;
-  // Unicorn placement: stamp on the paper (default) or ?mark=perch beside the steps.
-  const stampMode = new URLSearchParams(location.search).get('mark') !== 'perch';
-  if (!stampMode) figure.classList.add('is-perch');
-
-  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  const whenIdle = (fn: () => void) =>
-    'requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300);
-
-  // The turn, in the app's order: 1 read · 2 finish · 3 fold · 4 start the next line · 5 done.
-  const stepItems = [...figure.querySelectorAll<HTMLElement>('.turn__steps li')];
-  const setStep = (step: number) => {
-    figure.dataset.step = String(step);
-    stepItems.forEach((li, i) => {
-      li.classList.toggle('is-active', i + 1 === step);
-      li.classList.toggle('is-done', i + 1 < step);
-    });
-  };
-
-  whenIdle(async () => {
-    const { PaperFold } = await import('../../scripts/paper-fold');
-    const css = getComputedStyle(document.documentElement);
-    const lines = {
-      theirs: { text: theirs, half: 'top', color: css.getPropertyValue('--muted').trim() },
-      mine: { text: mine, half: 'top' },
-      next: { text: next, half: 'bottom' },
-    } as const;
-    const allLines = [lines.theirs, lines.mine, lines.next];
-
-    const sheet = PaperFold.create(canvas, {
-      paperSrc: paper,
-      font: `400 20px ${css.getPropertyValue('--font-ui')}`,
-      lineHeight: 30,
-      previousFolds: 2,
-      lines: [lines.theirs],
-      stamp: stampMode ? { src: stamp, altSrc: stampWink, size: 116, opacity: 0.16, rotate: -9 } : undefined,
-    });
-
-    if (!sheet) {
-      figure.dataset.state = 'fallback';
-      setStep(5);
-      status.textContent = passOn;
-      return;
-    }
-
-    await sheet.load();
-    figure.dataset.state = 'ready';
-    button.hidden = false;
-
-    // After folding, the sheet glides up into the space the folded half left — as in the app.
-    const glideBy = () => -sheetEl.offsetHeight * 0.2;
-    const move = { duration: duration('--dur-fold') * 1.2, ease: ease('--ease-fold') };
-
-    // Each run of the turn gets a number; starting a new one (or folding) cancels the old one.
-    let run = 0;
-    let folded = false;
-
-    const type = async (base: readonly (typeof lines)[keyof typeof lines][], line: (typeof lines)[keyof typeof lines], myRun: number) => {
-      for (let i = 1; i <= line.text.length; i++) {
-        if (run !== myRun) return;
-        sheet.setLines([...base, { ...line, text: line.text.slice(0, i) }]);
-        await wait(line.text[i - 1] === ' ' ? 70 : 38);
-      }
-    };
-
-    // Before the fold: read what the last player left, then finish their sentence.
-    const play = async () => {
-      const myRun = ++run;
-      folded = false;
-      button.textContent = foldLabel;
-      status.textContent = '';
-      sheet.setLines([lines.theirs]);
-      setStep(1);
-
-      if (reduced) {
-        sheet.setLines([lines.theirs, lines.mine]);
-        setStep(3);
-        return;
-      }
-      await wait(1300); // time to read what the last player left
-      if (run !== myRun) return;
-      setStep(2);
-      await type([lines.theirs], lines.mine, myRun);
-      if (run !== myRun) return;
-      setStep(3); // now it's the visitor's move
-    };
-
-    // After the fold: the sheet glides up and you start the next sentence on the visible half.
-    const foldAndPass = async () => {
-      const myRun = ++run; // stops any typing still in progress
-      sheet.setLines([lines.theirs, lines.mine]);
-      setStep(3);
-      await sheet.fold();
-      // Your secret's safe.
-      if (stampMode) {
-        sheet.setStampAlt(true);
-        setTimeout(() => sheet.setStampAlt(false), 700);
-      } else {
-        wink(figure.querySelector('[data-mark]'));
-      }
-      if (reduced) gsap.set([sheetEl, controls], { y: glideBy });
-      else await gsap.to([sheetEl, controls], { y: glideBy, ...move });
-      folded = true;
-
-      setStep(4);
-      if (reduced) sheet.setLines(allLines);
-      else {
-        await wait(300);
-        await type([lines.theirs, lines.mine], lines.next, myRun);
-      }
-      if (run !== myRun) return;
-      setStep(5);
-      status.textContent = passOn;
-      button.textContent = replayLabel;
-    };
-
-    // Busy while animating. aria-disabled (not `disabled`) so keyboard focus stays on the button.
-    const setBusy = (busy: boolean) => button.setAttribute('aria-disabled', String(busy));
-
-    button.addEventListener('click', async () => {
-      if (button.getAttribute('aria-disabled') === 'true') return;
-      setBusy(true);
-      if (!folded) {
-        await foldAndPass();
-      } else {
-        status.textContent = '';
-        if (reduced) gsap.set([sheetEl, controls], { y: 0 });
-        else gsap.to([sheetEl, controls], { y: 0, ...move });
-        await sheet.unfold();
-        play();
-      }
-      setBusy(false);
-    });
-
-    play();
-  });
 </script>
 
 <style>
@@ -329,214 +118,37 @@ const description = `An example turn. The last player left “${sheet.theirs}”
     color: var(--color-text-muted);
   }
 
-  /* ---------- The sheet ---------- */
-  .hero__visual {
-    display: grid;
-    justify-items: center;
-    gap: var(--space-4);
-    margin: 0;
-  }
-
-  .sheet {
-    position: relative;
-    width: min(100%, 460px);
-    aspect-ratio: 460 / 430;
-    filter: drop-shadow(0 18px 22px rgb(0 0 0 / 0.14)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
-  }
-
-  /* Blank paper shows instantly; the WebGL sheet fades in over it, pixel-matched. */
-  .sheet::before {
-    content: '';
-    position: absolute;
-    inset: 6px 24px 4px;
-    background: var(--paper-texture) center / 100% 100% no-repeat;
-  }
-
-  .sheet__canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    transition: opacity var(--dur-fold) var(--ease-out);
-  }
-
-  [data-state='ready'] .sheet__canvas {
-    opacity: 1;
-  }
-
-  /* Once the real sheet is drawn, the placeholder paper goes — otherwise it
-     would show through where the folded half used to be. */
-  [data-state='ready'] .sheet::before {
-    opacity: 0;
-    transition: opacity 0s var(--dur-fold);
-  }
-
-  /* Fallback: the folded sheet as plain HTML. */
-  .sheet__fallback {
-    position: absolute;
-    inset: 50% 24px 4px;
+  /* Phones and small tablets: no illustration (Natalie: it didn't work at that size) —
+     the hero is just the copy. */
+  .hero__art {
     display: none;
-    padding: 28px 32px;
-    background: var(--paper-texture) center bottom / 100% 200% no-repeat;
-    font: var(--weight-regular) 20px / 30px var(--font-ui);
-  }
-
-  .sheet__bands {
-    position: absolute;
-    inset: -10px 0 auto;
-    height: 10px;
-    background: linear-gradient(rgb(255 255 255 / 0.55), transparent 45%, rgb(0 0 0 / 0.06) 80%, rgb(0 0 0 / 0.18));
-  }
-
-  [data-state='fallback'] .sheet::before,
-  html:not(.js) .sheet::before {
-    display: none;
-  }
-
-  [data-state='fallback'] .sheet__fallback,
-  html:not(.js) .sheet__fallback {
-    display: block;
-  }
-
-  /* ---------- The turn: steps above, controls below ---------- */
-  .turn,
-  .turn__controls {
-    width: min(100%, 460px);
-    padding-inline: 24px; /* line up with the sheet's paper edge */
-  }
-
-  /* Badge and steps on the left; the unicorn on the right, perched on the sheet's top edge. */
-  .turn {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      'label mark'
-      'steps mark';
-    align-items: end;
-    justify-items: start;
-    gap: var(--space-3) var(--space-2);
-  }
-
-  :global(.turn__label) {
-    grid-area: label;
-  }
-
-  .turn__steps {
-    grid-area: steps;
-  }
-
-  /* Hidden unless ?mark=perch, so it never flashes before the script runs.
-     Scoped under .turn so it outranks the Mark component's own display rule. */
-  .turn :global(.turn__mark) {
-    display: none;
-  }
-
-  .is-perch .turn :global(.turn__mark) {
-    display: inline-block;
-  }
-
-  :global(.turn__mark) {
-    grid-area: mark;
-    margin-bottom: -14px; /* sits on the paper */
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Two rows of two: 1 2 / 3 4. */
-  .turn__steps {
-    display: grid;
-    grid-template-columns: repeat(2, max-content);
-    gap: var(--space-2) var(--space-5);
-    padding: 0;
-    list-style: none;
-    font-size: var(--text-sm);
-  }
-
-  .turn__steps li {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--color-text-muted);
-    transition: color var(--dur-base) ease-out;
-  }
-
-  .turn__num {
-    display: inline-grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border: 1px solid var(--color-border);
-    border-radius: 50%;
-    font-size: var(--text-xs);
-    line-height: 1;
-    transition:
-      background-color var(--dur-base) ease-out,
-      border-color var(--dur-base) ease-out,
-      color var(--dur-base) ease-out;
-  }
-
-  /* Current step: ink + filled number. Done steps: ink + outlined number. */
-  .turn__steps li:is(.is-active, .is-done) {
-    color: var(--color-text);
-  }
-
-  .turn__steps li.is-done .turn__num {
-    border-color: var(--color-text);
-  }
-
-  .turn__steps li.is-active .turn__num,
-  [data-step='5'] .turn__steps .turn__num {
-    border-color: var(--color-action);
-    background: var(--color-action);
-    color: var(--color-action-text);
-  }
-
-  .turn__controls {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    min-height: 48px;
-  }
-
-  :global(.turn__fold) {
-    flex-shrink: 0;
-  }
-
-  :global(.turn__fold[aria-disabled='true']) {
-    cursor: progress;
-  }
-
-  /* When it's time to fold, the button nudges — like the app's signature flag. */
-  [data-step='3'] :global(.turn__fold:not([aria-disabled='true'])) {
-    animation: nudge 2.4s var(--ease-settle) infinite;
-  }
-
-  @keyframes nudge {
-    0%, 70%, 100% { transform: translateY(0); }
-    80% { transform: translateY(-3px); }
-    90% { transform: translateY(0); }
-  }
-
-  .turn__status {
-    font-size: var(--text-sm);
-    color: var(--color-text-soft);
   }
 
   @media (min-width: 960px) {
-    :global(.hero__grid) {
-      grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
-      gap: var(--space-8);
-    }
-
-    /* Reserve the status line's room (up to 3 lines) so the column never changes height
-       when it appears — otherwise the centred grid re-centres and the headline jumps. */
-    .turn__status {
-      min-height: 3lh;
-    }
-
+    /* The hero fills the first screen (minus the header), so the next section — which opens
+       with its own sheet of paper — never peeks in and competes with the hero's folded note. */
     .hero {
-      padding-top: var(--space-6);
+      min-height: calc(100svh - var(--header-height, 80px));
+      display: grid;
+      align-content: center;
+    }
+
+    :global(.hero__grid) {
+      position: relative;
+    }
+
+    .hero__copy {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* The art spans the right two-thirds behind the copy; the folded page sits beside the stats. */
+    .hero__art {
+      display: block;
+      position: absolute;
+      inset-block: calc(-1 * var(--space-4)) calc(-1 * var(--space-7));
+      inset-inline-end: var(--gutter);
+      width: calc((100% - 2 * var(--gutter)) * 0.66);
     }
   }
 </style>
