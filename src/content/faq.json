@@ -9,7 +9,7 @@
     "id": "same-room",
     "order": 2,
     "question": "Do we need to be in the same room?",
-    "answer": "That’s how it’s designed to be played: together, at a party or an evening in, ending with the story read out loud. There are no notifications on purpose. Everyone plays at the same time, phones in hand."
+    "answer": "No, you can play with friends who are somewhere else too, as long as everyone plays at the same time. But it’s made for being together: a party or an evening in, ending with the story read out loud. There are no notifications on purpose. Everyone plays at once, phones in hand."
   },
   {
     "id": "install",
@@ -39,6 +39,6 @@
     "id": "share",
     "order": 7,
     "question": "Can I share a finished story?",
-    "answer": "Sharing a story as an image is coming soon. For now, finished stories are saved to your profile."
+    "answer": "Yes. When the game ends, tap “Share the story” to send a picture of the finished page, signatures and all, to WhatsApp or anywhere else, or save it to your phone. Your stories are also saved to your profile."
   }
 ]
