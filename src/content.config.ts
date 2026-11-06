@@ -76,6 +76,8 @@ const story = defineCollection({
     title: z.string(),
     body: z.string(),
     visual: z.enum(['paper', 'phone', 'sheet']),
+    /** The button drawn on the phone in the visual (the app's label after you fold: "Send"). */
+    screenButton: z.string().optional(),
   }),
 });
 

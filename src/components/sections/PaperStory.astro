@@ -1,0 +1,385 @@
+---
+/**
+ * "The paper game, reinvented" — the page's one big scroll moment.
+ *
+ * Desktop: the visual stays in place (CSS sticky) while three steps scroll past;
+ * scroll position drives the sheet (ScrollTrigger scrub → PaperFold.setProgress).
+ * Phones and reduced motion: no pinning — the steps stack and the sheet is shown
+ * as a still, already folded.
+ */
+import type { CollectionEntry } from 'astro:content';
+import { getImage } from 'astro:assets';
+import paperImage from '../../assets/img/paper.png';
+import Wordmark from '../../assets/img/unfolded-wordmark.svg';
+import Container from '../ui/Container.astro';
+import Heading from '../ui/Heading.astro';
+
+interface Props {
+  intro: CollectionEntry<'site'>['data']['story'];
+  steps: CollectionEntry<'story'>[];
+  /** The hero's sheet — the same story carries on down the page. */
+  sheet: CollectionEntry<'site'>['data']['hero']['sheet'];
+}
+
+const { intro, steps, sheet } = Astro.props;
+const paper = await getImage({ src: paperImage, format: 'webp', width: 920, quality: 80 });
+const screenButton = steps.find((s) => s.data.visual === 'phone')?.data.screenButton;
+---
+
+<section class="story" id="paper-game" aria-labelledby="story-title">
+  <Container>
+    <header class="story__intro" data-reveal>
+      <p class="eyebrow">{intro.eyebrow}</p>
+      <Heading level={2} id="story-title">{intro.title}</Heading>
+    </header>
+
+    <div class="story__grid">
+      <ol class="story__steps">
+        {
+          steps.map(({ data }, i) => (
+            <li class="story__step" data-visual={data.visual} class:list={[{ 'is-active': i === 0 }]}>
+              <span class="story__num" aria-hidden="true">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <Heading level={3} size="2xl">
+                {data.title}
+              </Heading>
+              <p>{data.body}</p>
+            </li>
+          ))
+        }
+      </ol>
+
+      <!-- Decorative: the steps' text says everything the picture shows. -->
+      <div class="story__stage" aria-hidden="true">
+        <div
+          class="story__visual"
+          data-state="loading"
+          data-paper={paper.src}
+          data-theirs={sheet.theirs}
+          data-mine={sheet.mine}
+          data-next={sheet.next}
+          style={`--paper-texture: url(${paper.src})`}
+        >
+          <div class="story__sheet">
+            <canvas class="story__canvas"></canvas>
+          </div>
+
+          <!-- Step 2: a phone draws in around the folded sheet — the app's writing screen. -->
+          <div class="phone">
+            <svg class="phone__outline" viewBox="0 0 250 510" preserveAspectRatio="none">
+              <rect x="1.5" y="1.5" width="247" height="507" rx="38" pathLength="100"></rect>
+            </svg>
+            <span class="phone__speaker phone__part"></span>
+            <Wordmark class="phone__logo phone__part" />
+            {screenButton && <span class="phone__button phone__part">{screenButton}</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  </Container>
+</section>
+
+<script>
+  import { gsap, ScrollTrigger } from '../../scripts/motion';
+
+  const section = document.querySelector<HTMLElement>('.story')!;
+  const visual = section.querySelector<HTMLElement>('.story__visual')!;
+  const sheetEl = section.querySelector<HTMLElement>('.story__sheet')!;
+  const canvas = section.querySelector<HTMLCanvasElement>('.story__canvas')!;
+  const steps = [...section.querySelectorAll<HTMLElement>('.story__step')];
+  const { paper, theirs, mine, next } = visual.dataset as Record<string, string>;
+
+  // Load the WebGL sheet only when the section is close, so it never costs the hero anything.
+  const io = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      start();
+    },
+    { rootMargin: '600px 0px' },
+  );
+  io.observe(section);
+
+  async function start() {
+    const { PaperFold } = await import('../../scripts/paper-fold');
+    const css = getComputedStyle(document.documentElement);
+    const sheet = PaperFold.create(canvas, {
+      paperSrc: paper,
+      font: `400 20px ${css.getPropertyValue('--font-ui')}`,
+      lineHeight: 30,
+      lines: [
+        { text: theirs, half: 'top' },
+        { text: mine, half: 'top' },
+        { text: next, half: 'bottom' },
+      ],
+    });
+    if (!sheet) {
+      visual.dataset.state = 'fallback';
+      return;
+    }
+    await sheet.load();
+    visual.dataset.state = 'ready';
+
+    const mm = gsap.matchMedia();
+
+    // Desktop with motion: scroll drives the story.
+    mm.add('(min-width: 960px) and (prefers-reduced-motion: no-preference)', () => {
+      section.classList.add('is-scrolly');
+
+      // The step nearest the middle of the screen is the one in focus.
+      steps.forEach((step) => {
+        ScrollTrigger.create({
+          trigger: step,
+          start: 'top 55%',
+          end: 'bottom 55%',
+          onToggle: ({ isActive }) => isActive && steps.forEach((s) => s.classList.toggle('is-active', s === step)),
+        });
+      });
+
+      // Step 1 — the paper game: the sheet folds over the top lines as you read,
+      // then glides up into the space the folded half left (as in the app).
+      ScrollTrigger.create({
+        trigger: steps[0],
+        start: 'top 55%',
+        end: 'bottom 45%',
+        scrub: true,
+        onUpdate: ({ progress }) => {
+          const fold = Math.min(1, progress / 0.75);
+          const glide = Math.max(0, (progress - 0.75) / 0.25);
+          sheet.setProgress(fold);
+          gsap.set(sheetEl, { y: -sheetEl.offsetHeight * 0.2 * glide });
+        },
+      });
+
+      // Step 2 — onto the phone: the folded sheet shrinks to screen size while a phone
+      // outline draws in around it; the app's wordmark and "Send" button appear last.
+      gsap
+        .timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: { trigger: steps[1], start: 'top 55%', end: 'center 45%', scrub: true },
+        })
+        // The sheet shrinks first, so the outline never cuts across it while drawing.
+        .to(sheetEl, { scale: 0.5, duration: 0.55 }, 0)
+        .fromTo(section.querySelector('.phone__outline rect'), { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 0.6 }, 0.3)
+        .fromTo(
+          section.querySelectorAll('.phone__part'),
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.2, stagger: 0.06 },
+          0.75,
+        );
+
+      return () => {
+        section.classList.remove('is-scrolly');
+        steps.forEach((s, i) => s.classList.toggle('is-active', i === 0));
+      };
+    });
+
+    // Phones / reduced motion: a still of the folded sheet.
+    mm.add('(max-width: 959px), (prefers-reduced-motion: reduce)', () => {
+      sheet.setProgress(1);
+      gsap.set(sheetEl, { y: -sheetEl.offsetHeight * 0.2 });
+    });
+  }
+</script>
+
+<style>
+  .story {
+    padding-block: var(--section-y);
+  }
+
+  .story__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: var(--measure);
+    margin-block-end: var(--space-8);
+  }
+
+  .story__grid {
+    display: grid;
+    gap: var(--space-7);
+  }
+
+  .story__steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding: 0;
+    list-style: none;
+  }
+
+  .story__step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 34rem;
+  }
+
+  .story__step p {
+    font-size: var(--text-lg);
+    color: var(--color-text-soft);
+  }
+
+  .story__num {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    color: var(--color-text-soft);
+  }
+
+  /* The visual comes first on phones. */
+  .story__stage {
+    order: -1;
+    display: grid;
+    place-items: center;
+  }
+
+  .story__visual {
+    width: min(100%, 460px);
+  }
+
+  .story__sheet {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 460 / 430;
+    filter: drop-shadow(0 18px 22px rgb(0 0 0 / 0.14)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+  }
+
+  /* Blank paper shows until the WebGL sheet is ready, pixel-matched to it. */
+  .story__sheet::before {
+    content: '';
+    position: absolute;
+    inset: 6px 24px 4px;
+    background: var(--paper-texture) center / 100% 100% no-repeat;
+  }
+
+  [data-state='ready'] .story__sheet::before {
+    opacity: 0;
+    transition: opacity 0s var(--dur-fold);
+  }
+
+  .story__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity var(--dur-fold) var(--ease-out);
+  }
+
+  [data-state='ready'] .story__canvas {
+    opacity: 1;
+  }
+
+  /* ---------- Step 2: the phone ---------- */
+  .story__visual {
+    position: relative;
+  }
+
+  .phone {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    width: 250px;
+    height: 510px;
+    translate: -50% -50%;
+    pointer-events: none;
+  }
+
+  /* Logical properties keep the phone centred in RTL too (translate is physical, so flip it). */
+  :global([dir='rtl']) .phone {
+    translate: 50% -50%;
+  }
+
+  .phone__outline {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .phone__outline rect {
+    fill: none;
+    stroke: var(--color-text);
+    stroke-width: 3;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100; /* hidden until scroll draws it */
+    vector-effect: non-scaling-stroke;
+  }
+
+  .phone__part {
+    position: absolute;
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    opacity: 0;
+  }
+
+  :global([dir='rtl']) .phone__part {
+    translate: 50% 0;
+  }
+
+  .phone__speaker {
+    inset-block-start: 14px;
+    width: 64px;
+    height: 18px;
+    border-radius: 9px; /* a pill: half its height */
+    background: var(--color-text);
+  }
+
+  .phone :global(.phone__logo) {
+    inset-block-start: 60px;
+    width: 92px;
+    height: auto;
+    color: var(--color-text);
+  }
+
+  .phone__button {
+    inset-block-end: 150px; /* just under the folded sheet, as in the app */
+    display: grid;
+    place-items: center;
+    width: calc(100% - 48px);
+    height: 40px;
+    border-radius: var(--radius-field);
+    background: var(--color-action);
+    color: var(--color-action-text);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+  }
+
+  @media (min-width: 960px) {
+    .story__grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+      gap: var(--space-8);
+    }
+
+    .story__stage {
+      order: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      height: 100svh;
+    }
+
+    /* Each step gets about half a screen of scroll: enough for the sheet to change, not so much it feels empty. */
+    .story__step {
+      min-height: 55vh;
+      justify-content: center;
+    }
+
+    .story__steps {
+      gap: 0;
+    }
+
+    /* Only while scroll is driving the story: the step in focus is full strength. */
+    .is-scrolly .story__step {
+      opacity: 0.28;
+      transition: opacity var(--dur-slow) var(--ease-out);
+    }
+
+    .is-scrolly .story__step.is-active {
+      opacity: 1;
+    }
+  }
+</style>

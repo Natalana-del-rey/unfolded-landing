@@ -1,17 +1,25 @@
 ---
-import { getEntry } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteHeader from '../components/sections/SiteHeader.astro';
 import Hero from '../components/sections/Hero.astro';
+import PaperStory from '../components/sections/PaperStory.astro';
 
 const site = await getEntry('site', 'home');
 if (!site) throw new Error('src/content/site.json is missing the "home" entry');
-const { meta, appUrl, hero } = site.data;
+const { meta, appUrl, hero, story } = site.data;
+const storySteps = (await getCollection('story')).sort((a, b) => a.data.order - b.data.order);
 ---
 
 <BaseLayout title={meta.title} description={meta.description}>
   <SiteHeader appUrl={appUrl} ctaLabel={hero.primaryCta} />
   <main id="main">
     <Hero hero={hero} appUrl={appUrl} />
+    <PaperStory intro={story} steps={storySteps} sheet={hero.sheet} />
   </main>
 </BaseLayout>
+
+<script>
+  import { initReveals } from '../scripts/motion';
+  initReveals();
+</script>
