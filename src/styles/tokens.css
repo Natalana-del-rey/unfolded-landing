@@ -30,7 +30,6 @@
      the first font that has the glyph. */
   --font-display: "Frank Ruhl Libre", "Times New Roman", "David", serif; /* has Latin + Hebrew */
   --font-ui: "IBM Plex Sans", "IBM Plex Sans Hebrew", system-ui, -apple-system, "Segoe UI", sans-serif; /* Plex for Latin, Plex Hebrew for Hebrew */
-  --font-signature: "Caveat", "Gveret Levin", cursive; /* drawn-name feel: Caveat for Latin, Gveret Levin for Hebrew */
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
   /* ---------- Primitives: spacing (app scale 1–7, landing adds 8–9) ---------- */

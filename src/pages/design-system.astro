@@ -7,6 +7,8 @@ import Button from '../components/ui/Button.astro';
 import Card from '../components/ui/Card.astro';
 import Badge from '../components/ui/Badge.astro';
 import Link from '../components/ui/Link.astro';
+import Mark from '../components/ui/Mark.astro';
+import Signatures from '../components/sections/Signatures.astro';
 import { tokenGroups, resolveColor, contrastRatio, luminance } from '../lib/tokens';
 
 const paper = resolveColor('--paper') ?? '#f6f6f5';
@@ -120,7 +122,7 @@ const nav = [
         <Heading level={2} size="2xl" id="type-title">Type</Heading>
         <p class="ds-intro">
           Every family works in English and Hebrew: Frank Ruhl Libre for headings, IBM Plex Sans (and Plex Sans Hebrew)
-          for reading, Caveat and Gveret Levin for signed names, Newsreader for the wordmark. Sizes from
+          for reading, Newsreader for the wordmark. Sizes from
           {' '}<code>--text-2xl</code> up are fluid — resize the window to watch them scale.
         </p>
 
@@ -153,19 +155,6 @@ const nav = [
             ))
           }
         </ol>
-
-        <div class="signatures">
-          <Heading level={3} size="lg">Signatures</Heading>
-          <p class="specimen__note">
-            <code>--font-signature</code> — how each writer's name appears under the finished story.
-          </p>
-          <p class="signatures__names">
-            <span>Natalie</span>
-            <span lang="he" dir="rtl">נטלי</span>
-            <span>Dana</span>
-            <span lang="he" dir="rtl">יואב</span>
-          </p>
-        </div>
 
         <dl class="token-list">
           {
@@ -275,7 +264,10 @@ const nav = [
     <Section id="components" labelledBy="components-title" tone="paper">
       <Container>
         <Heading level={2} size="2xl" id="components-title">Components</Heading>
-        <p class="ds-intro">Seven building blocks in <code>src/components/ui/</code>. Hover and tab through them.</p>
+        <p class="ds-intro">
+          The building blocks in <code>src/components/ui/</code>, plus the signatures from the finished story. Hover and
+          tab through them.
+        </p>
 
         <div class="specimen">
           <Heading level={3} size="lg">Button</Heading>
@@ -304,6 +296,13 @@ const nav = [
             <Heading level={4} size="2xl">2xl — sub-section</Heading>
             <Heading level={4} size="xl">xl — card title</Heading>
             <Heading level={4} size="lg">lg — small title</Heading>
+          </div>
+          <p class="specimen__note">
+            <code>.eyebrow</code> — the small label above every section title.
+          </p>
+          <div class="specimen__stack specimen__stack--tight">
+            <p class="eyebrow">How it works</p>
+            <Heading level={4} size="3xl">From empty page to read-aloud.</Heading>
           </div>
         </div>
 
@@ -344,6 +343,28 @@ const nav = [
             <Link href="#components" variant="quiet">Quiet link</Link>
             <Link href="https://hire-natalie.today" external>External link</Link>
           </p>
+        </div>
+
+        <div class="specimen">
+          <Heading level={3} size="lg">Mark</Heading>
+          <p class="specimen__note">
+            The unicorn. <code>variant</code>: app (the app's drawing) · doodle (redrawn in the hero's ink line) —
+            {' '}<code>size</code> in px. Winks on hover, or when a script calls <code>wink()</code>. Always decorative.
+          </p>
+          <div class="specimen__row specimen__row--marks">
+            <Mark size={64} />
+            <Mark variant="doodle" size={64} />
+            <Mark variant="doodle" size={128} />
+          </div>
+        </div>
+
+        <div class="specimen">
+          <Heading level={3} size="lg">Signatures</Heading>
+          <p class="specimen__note">
+            <code>names</code> — real handwritten signatures (traced SVGs in <code>src/assets/img/signatures/</code>), each
+            with its own tilt. A name without a drawing falls back to plain text in <code>--font-display</code>, like “Dana” here, so a new name can never break the page.
+          </p>
+          <Signatures names={['Maya', 'Tom', 'Noa', 'Eli', 'Dana']} />
         </div>
 
         <div class="specimen">
@@ -572,19 +593,6 @@ const nav = [
     color: var(--color-text-soft);
   }
 
-  .signatures {
-    margin-top: var(--space-7);
-  }
-
-  .signatures__names {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3) var(--space-7);
-    font-family: var(--font-signature);
-    font-size: var(--text-2xl);
-    line-height: 1.2;
-  }
-
   .token-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -738,6 +746,16 @@ const nav = [
   .specimen__stack {
     display: grid;
     gap: var(--space-4);
+  }
+
+  .specimen__stack--tight {
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .specimen__row--marks {
+    align-items: end;
+    gap: var(--space-6);
   }
 
   .specimen__grid {
