@@ -130,7 +130,8 @@ p {
 @media (prefers-reduced-motion: no-preference) {
   .js [data-reveal],
   .js [data-reveal-item],
-  .js [data-hero-item] {
+  /* data-hero-item="slide" only slides (no fade), so it can count as the page's main text (LCP). */
+  .js [data-hero-item]:not([data-hero-item='slide']) {
     opacity: 0;
   }
 }

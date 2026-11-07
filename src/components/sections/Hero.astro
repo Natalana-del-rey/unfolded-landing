@@ -18,7 +18,7 @@ const { hero, appUrl } = Astro.props;
     <div class="hero__copy">
       <p class="eyebrow" data-hero-item>{hero.eyebrow}</p>
       <Heading level={1} id="hero-title" class="hero__title" data-hero-title>{hero.title}</Heading>
-      <p class="hero__lead" data-hero-item>{hero.lead}</p>
+      <p class="hero__lead" data-hero-item="slide">{hero.lead}</p>
 
       <div class="hero__actions" data-hero-item>
         <Button href={appUrl} size="lg">{hero.primaryCta}</Button>

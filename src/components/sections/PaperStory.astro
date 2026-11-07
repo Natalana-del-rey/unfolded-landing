@@ -433,7 +433,12 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
     },
     { rootMargin: '600px 0px' },
   );
-  if (matchMedia('(min-width: 960px) and (prefers-reduced-motion: no-preference)').matches) io.observe(section);
+  // Wait for the first scroll too: on tall screens the section is "close" at page load, and
+  // building the sheet then blocks the page right while it opens (Lighthouse TBT).
+  if (matchMedia('(min-width: 960px) and (prefers-reduced-motion: no-preference)').matches) {
+    if (scrollY > 0) io.observe(section);
+    else addEventListener('scroll', () => io.observe(section), { once: true, passive: true });
+  }
 
   async function loadSheet() {
     const { PaperFold } = await import('../../scripts/paper-fold');
