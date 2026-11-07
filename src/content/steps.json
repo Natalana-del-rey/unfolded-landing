@@ -15,7 +15,7 @@
     "id": "pass",
     "order": 3,
     "title": "Pass it on",
-    "body": "Everyone sees whose turn it is. Each turn lasts 3 minutes, with a last call for the final 30 seconds."
+    "body": "Everyone sees whose turn it is. You get 3 minutes to finish the sentence and 2 to start the next, with a last call in the final 30 seconds."
   },
   {
     "id": "read",
