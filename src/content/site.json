@@ -77,6 +77,10 @@
         {
           "label": "Design system",
           "href": "/design-system"
+        },
+        {
+          "label": "Privacy",
+          "href": "https://play.unfolded-game.com/privacy.html"
         }
       ]
     }
