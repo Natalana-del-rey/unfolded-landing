@@ -4,15 +4,15 @@
     "appUrl": "https://play.unfolded-game.com",
     "meta": {
       "title": "Unfolded — the folded-paper story game, on your phones",
-      "description": "A party game for 2–10 friends in the same room. Write one story together, one line at a time, without seeing what came before. Then read it out loud."
+      "description": "A party game for 2–10 friends on their phones. Take turns finishing a sentence and starting the next, then read the whole story out loud."
     },
     "hero": {
-      "eyebrow": "A party game for friends in the same room",
-      "title": "Everyone writes a line. Nobody’s to blame.",
-      "lead": "Write one story together on your phones. You only see the last few words before your turn, then you fold the page and pass it on. At the end, everyone reads the whole thing out loud.",
-      "primaryCta": "Try Unfolded",
+      "eyebrow": "A party game for friends, on your phones",
+      "title": "Write one story. Lose control of the plot.",
+      "lead": "Take turns finishing a sentence and starting the next. Then read it out loud and discover what on earth you just created.",
+      "primaryCta": "Start a game",
       "secondaryCta": {
-        "label": "How it works",
+        "label": "See how it works",
         "href": "#how-it-works"
       },
       "specs": [

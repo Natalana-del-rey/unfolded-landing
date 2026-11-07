@@ -11,13 +11,15 @@ interface Props {
 }
 
 const { hero, appUrl } = Astro.props;
+// Each sentence of the headline stays on its own line where it fits ("Write one story." / "Lose control of the plot.").
+const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
 ---
 
 <section class="hero" aria-labelledby="hero-title">
   <Container class="hero__grid">
     <div class="hero__copy">
       <p class="eyebrow" data-hero-item>{hero.eyebrow}</p>
-      <Heading level={1} id="hero-title" class="hero__title" data-hero-title>{hero.title}</Heading>
+      <Heading level={1} id="hero-title" class="hero__title" data-hero-title>{titleSentences.map((sentence, i) => <>{i > 0 && ' '}<span class="hero__title-sentence">{sentence}</span></>)}</Heading>
       <p class="hero__lead" data-hero-item="slide">{hero.lead}</p>
 
       <div class="hero__actions" data-hero-item>
@@ -76,6 +78,11 @@ const { hero, appUrl } = Astro.props;
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-5);
+  }
+
+  /* A sentence only breaks inside itself when it can't fit on one line (narrow phones). */
+  .hero__title-sentence {
+    display: inline-block;
   }
 
   .hero__lead {
