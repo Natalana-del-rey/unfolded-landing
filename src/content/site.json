@@ -70,6 +70,10 @@
       "lead": "Open a room, share the 4-digit code, and start the story. Everyone’s phone is the paper.",
       "primaryCta": "Try Unfolded"
     },
+    "googleSignIn": {
+      "title": "Google sign-in",
+      "body": "Unfolded is a party game where friends write one story together on their phones. Signing in with Google is optional. Unfolded uses it only to save your name, email and finished stories to your profile, so they're there on any phone. Unfolded does not use Google APIs to create images, AI-generated content, or anything else."
+    },
     "footer": {
       "credit": "Designed & built by Natalie Tarnovsky",
       "creditUrl": "https://hire-natalie.today",

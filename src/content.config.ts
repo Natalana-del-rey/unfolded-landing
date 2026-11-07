@@ -60,6 +60,12 @@ const site = defineCollection({
       lead: z.string(),
       primaryCta: z.string(),
     }),
+    /** Plain statement above the footer for Google's OAuth brand verification: what the app is,
+        and what Google sign-in is (and isn't) used for. Must stay visible in the served HTML. */
+    googleSignIn: z.object({
+      title: z.string(),
+      body: z.string(),
+    }),
     footer: z.object({
       credit: z.string(),
       creditUrl: z.url(),

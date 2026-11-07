@@ -1,0 +1,37 @@
+---
+/**
+ * Google sign-in — a short, always-visible statement above the footer, for Google's OAuth brand
+ * verification: what Unfolded is, and what Google sign-in is (and isn't) used for.
+ * Server-rendered text only (no script, no reveal animation), so crawlers read it as served.
+ */
+import type { CollectionEntry } from 'astro:content';
+import Container from '../ui/Container.astro';
+import Heading from '../ui/Heading.astro';
+
+interface Props {
+  content: CollectionEntry<'site'>['data']['googleSignIn'];
+}
+
+const { content } = Astro.props;
+---
+
+<section class="google-sign-in" id="google-sign-in" aria-labelledby="google-sign-in-title">
+  <Container>
+    <Heading level={2} size="lg" id="google-sign-in-title">{content.title}</Heading>
+    <p>{content.body}</p>
+  </Container>
+</section>
+
+<style>
+  .google-sign-in {
+    padding-block: var(--space-7);
+    border-block-start: 1px solid var(--color-border);
+    background: var(--color-bg);
+  }
+
+  .google-sign-in p {
+    max-width: var(--measure);
+    margin-block-start: var(--space-3);
+    color: var(--color-text-soft);
+  }
+</style>
