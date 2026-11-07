@@ -1,0 +1,83 @@
+---
+/**
+ * OgCard — the 1200×630 social preview card (public/og.png): wordmark, hero headline, hero art.
+ * It's a snapshot of the hero, so regenerate og.png whenever the hero changes:
+ *   1. Add src/pages/og.astro containing: import OgCard from '../components/OgCard.astro'; <OgCard />
+ *   2. With the dev server running, photograph it with headless Chrome (reduced motion = art fully drawn):
+ *      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+ *        --force-prefers-reduced-motion --force-device-scale-factor=2 --window-size=1200,630 \
+ *        --virtual-time-budget=5000 --screenshot=og-2x.png http://localhost:4321/og
+ *   3. sips -z 630 1200 og-2x.png --out public/og.png   (2× then down = crisp text)
+ *   4. Delete src/pages/og.astro so it never ships.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroArt from './sections/HeroArt.astro';
+import Wordmark from '../assets/img/unfolded-wordmark.svg';
+import { getEntry } from 'astro:content';
+
+const site = (await getEntry('site', 'home'))!.data;
+---
+
+<BaseLayout title="og" description="og">
+  <div class="og">
+    <div class="og__copy">
+      <Wordmark class="og__wordmark" aria-hidden="true" />
+      <h1 class="og__title">{site.hero.title}</h1>
+      <p class="og__url">unfolded-game.com</p>
+    </div>
+    <div class="og__art"><HeroArt /></div>
+  </div>
+</BaseLayout>
+
+<style>
+  :global(html, body) {
+    margin: 0;
+    overflow: hidden;
+  }
+
+  :global(astro-dev-toolbar) {
+    display: none !important;
+  }
+
+  .og {
+    position: relative;
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background: var(--color-bg);
+  }
+
+  .og__copy {
+    position: absolute;
+    z-index: 1;
+    inset: 64px auto 64px 72px;
+    width: 520px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .og__wordmark {
+    width: 168px;
+    height: auto;
+  }
+
+  .og__title {
+    margin-block: auto;
+    font-family: var(--font-display);
+    font-size: 64px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+  }
+
+  .og__url {
+    font-size: 20px;
+    color: var(--color-text-muted);
+  }
+
+  .og__art {
+    position: absolute;
+    inset: 16px 48px 48px auto;
+    width: 760px;
+  }
+</style>
