@@ -1,8 +1,8 @@
 ---
 /**
- * How it works — the practical, scannable version of the game: four numbered paper slips.
+ * How to start — getting a game going, as numbered paper slips (the paper-game section above explains a turn).
  *
- * A thin ink line joins the step numbers. When the steps come into view it draws once from 01 to 04
+ * A thin ink line joins the step numbers. When the steps come into view it draws once from the first number to the last
  * on a timer (~2.2s), each number inking in as the line reaches it. Not tied to scroll position:
  * a scrubbed version left the line half-drawn when you jumped here from the header link. The slips themselves stay still: plain paper.
  * Desktop: slips side by side, the line runs across. Phones: slips stacked, the line runs down.
@@ -28,7 +28,7 @@ const noBreak = (text: string) => text.replace(/(\d)-(\p{L})/gu, '$1\u2011$2');
 const paper = await getImage({ src: paperImage, format: 'webp', width: 600, quality: 75 });
 ---
 
-<section class="how" id="how-it-works" aria-labelledby="how-title" style={`--paper-texture: url(${paper.src})`}>
+<section class="how" id="start" aria-labelledby="how-title" style={`--paper-texture: url(${paper.src}); --steps: ${steps.length}`}>
   <Container>
     <header class="how__intro" data-reveal>
       <p class="eyebrow">{intro.eyebrow}</p>
@@ -176,10 +176,10 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 600, qual
     }
   }
 
-  /* Desktop: four slips in a row, numbers above them, the line running across. */
+  /* Desktop: the slips in a row, numbers above them, the line running across. */
   @media (min-width: 960px) {
     .how__steps {
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(var(--steps), 1fr);
     }
 
     /* Equal-height slips: each step stretches to the row, and the slip fills its step. */

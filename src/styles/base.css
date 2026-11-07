@@ -19,7 +19,7 @@ html {
   color-scheme: light;
 }
 
-/* Arriving at a section by link (#how-it-works, #faq): leave room above its heading. */
+/* Arriving at a section by link (#how-it-works, #start, #faq): leave room above its heading. */
 section[id] {
   scroll-margin-block-start: var(--space-7);
 }

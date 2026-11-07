@@ -3,24 +3,18 @@
     "id": "create",
     "order": 1,
     "title": "Create a room",
-    "body": "One person opens a room and invites friends with a link or a 4-digit code."
+    "body": "One person opens a room on their phone."
   },
   {
-    "id": "write-fold",
+    "id": "invite",
     "order": 2,
-    "title": "Write & fold",
-    "body": "You see only the start of a sentence. Finish it, tap “fold the page”, then write the start of the next one."
+    "title": "Invite your friends",
+    "body": "Share a link or the 4-digit code. Everyone joins on their own phone."
   },
   {
-    "id": "pass",
+    "id": "play",
     "order": 3,
-    "title": "Pass it on",
-    "body": "Everyone sees whose turn it is. You get 3 minutes to finish the sentence and 2 to start the next, with a last call in the final 30 seconds."
-  },
-  {
-    "id": "read",
-    "order": 4,
-    "title": "Read the signed story",
-    "body": "After the last line, everyone gets the same story on one sheet, signed by all who wrote it. Read it out loud."
+    "title": "Let the story unfold",
+    "body": "Take turns until the last line, then read the whole story out loud."
   }
 ]
