@@ -21,19 +21,19 @@
     "id": "see-others",
     "order": 4,
     "question": "Can I see what the others wrote?",
-    "answer": "Not until the end. That’s the fun. You only see the last few words before your turn. If you forget what you wrote yourself, Peek lets you look under your fold for a moment."
+    "answer": "Not until the end. That’s the fun. On your turn, you only see the start of the sentence the last player left you. If you forget what you wrote yourself, Peek lets you look under your fold for a moment."
   },
   {
     "id": "slow",
     "order": 5,
     "question": "What if someone takes too long?",
-    "answer": "Each turn lasts 3 minutes. In the final 30 seconds everyone sees a last call, and if time runs out, the turn passes on, so the story keeps moving."
+    "answer": "You get 3 minutes to finish your sentence and 2 to start the next. In the final 30 seconds everyone sees a last call, and if time runs out, the turn passes on, so the story keeps moving."
   },
   {
     "id": "account",
     "order": 6,
     "question": "Do I need an account?",
-    "answer": "No, you can play without one. With an account (just a name and email), your finished stories are saved to your profile."
+    "answer": "No, you can play without one, but then your finished stories disappear after a week. With an account (just a name and email), they’re saved to your profile."
   },
   {
     "id": "share",
