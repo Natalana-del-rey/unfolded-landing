@@ -4,7 +4,12 @@
     "order": 1,
     "title": "One sheet goes around the table.",
     "body": "You write a line, fold the paper over it so only the last few words show, and pass it on. Some call it Consequences, some call it Exquisite Corpse.",
-    "visual": "paper"
+    "visual": "paper",
+    "sent": {
+      "title": "Folded and sent.",
+      "nextTurn": "Now it’s Dana’s turn.",
+      "avatar": "tulip"
+    }
   },
   {
     "id": "phone",

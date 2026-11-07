@@ -27,7 +27,7 @@
     "id": "slow",
     "order": 5,
     "question": "What if someone takes too long?",
-    "answer": "Each turn lasts 2 minutes. In the final 30 seconds everyone sees a last call, and if time runs out, the turn passes on, so the story keeps moving."
+    "answer": "Each turn lasts 3 minutes. In the final 30 seconds everyone sees a last call, and if time runs out, the turn passes on, so the story keeps moving."
   },
   {
     "id": "account",
