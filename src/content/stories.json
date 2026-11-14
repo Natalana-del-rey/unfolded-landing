@@ -2,7 +2,6 @@
   {
     "id": "cat",
     "order": 1,
-    "stock": "paper",
     "foil": true,
     "lines": [
       {
@@ -26,8 +25,7 @@
   {
     "id": "whale",
     "order": 2,
-    "stock": "ink",
-    "foil": true,
+    "foil": false,
     "lines": [
       {
         "join": "Deep under the ocean,",
@@ -50,8 +48,7 @@
   {
     "id": "king",
     "order": 3,
-    "stock": "shade",
-    "foil": false,
+    "foil": true,
     "lines": [
       {
         "join": "On his first day as king,",

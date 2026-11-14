@@ -1,9 +1,9 @@
 ---
 /**
- * StoryShelf — a few finished pages laid out on a dark table.
+ * StoryShelf — a few finished pages laid out on the table.
  *
- * Black and white, like the rest of the brand: each page is the app's paper (plain, shaded, or
- * black paper with pale ink) carrying one whole story, folded once per sentence and signed.
+ * Paper and ink, like the rest of the brand: the section sits on the same light ground as the page,
+ * and each sheet is the app's own paper carrying one whole story, folded once per sentence and signed.
  * Pages are objects, not pictures:
  *   - they turn to face you as they cross the screen, so light slides over them while you scroll;
  *   - under a mouse they tilt toward the pointer, with a glare that follows it;
@@ -57,7 +57,7 @@ const lie = [
           const { turn, step } = lie[i % lie.length];
           return (
             <li
-              class:list={['page', `page--${data.stock}`, data.foil && 'page--foil']}
+              class:list={['page', data.foil && 'page--foil']}
               style={`--turn: ${turn}deg; --step: ${step}px`}
             >
               <div class="page__tilt">
@@ -89,11 +89,11 @@ const lie = [
 <style>
   .shelf {
     position: relative;
-    padding-block: var(--section-y) var(--space-7);
-    background: var(--color-night);
-    color: var(--color-text-inverse);
+    /* No top padding: the paper-game section above has the same background and already ends
+       with a full section gap. */
+    padding-block: 0 var(--section-y);
+    background: var(--color-bg);
     overflow-x: clip;
-    --focus-ring: 2px solid var(--color-text-inverse);
   }
 
   .shelf__intro {
@@ -101,10 +101,6 @@ const lie = [
     flex-direction: column;
     gap: var(--space-4);
     max-width: 44rem;
-  }
-
-  .shelf__intro .eyebrow {
-    color: color-mix(in srgb, var(--color-text-inverse) 62%, transparent);
   }
 
   /* ---- The row. Phones: it swipes sideways. Desktop: everything fits, nothing scrolls. ---- */
@@ -127,7 +123,7 @@ const lie = [
     gap: clamp(var(--space-5), 3.5vw, var(--space-7));
     inline-size: max-content;
     margin: 0;
-    padding: var(--space-8) var(--edge) var(--space-8);
+    padding: var(--space-7) var(--edge) var(--space-7);
     list-style: none;
   }
 
@@ -176,38 +172,16 @@ const lie = [
   }
 
   .page__sheet {
-    --stock: var(--paper);
     position: relative;
     padding: 22px 26px 16px;
-    background:
-      var(--paper-texture) center / cover,
-      var(--stock);
-    background-blend-mode: multiply;
+    background: var(--color-surface) var(--paper-texture) center / cover;
     box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.35) inset,
-      0 30px 40px -18px rgb(0 0 0 / 0.75),
-      0 4px 6px rgb(0 0 0 / 0.3);
-    color: var(--ink);
+      0 1px 1px rgb(0 0 0 / 0.06),
+      0 28px 34px -18px rgb(0 0 0 / 0.3),
+      0 6px 10px -4px rgb(0 0 0 / 0.1);
+    color: var(--color-text);
     font: var(--weight-regular) 17px / 1.5 var(--font-display);
     overflow: hidden;
-  }
-
-  .page--shade .page__sheet {
-    --stock: var(--hairline);
-  }
-
-  /* Black paper, pale ink: creases and signatures turn light. */
-  .page--ink .page__sheet {
-    background: #1c1c1e;
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.12) inset,
-      0 0 0 1px rgb(255 255 255 / 0.07),
-      0 30px 40px -18px rgb(0 0 0 / 0.9);
-    color: var(--on-ink);
-  }
-
-  .page--ink .page__sheet :global(.signature) {
-    color: var(--on-ink);
   }
 
   /* One fold per sentence: a crease (dark line, light line) and a soft shade under it. */
@@ -218,13 +192,9 @@ const lie = [
   }
 
   .page__sheet p + p {
-    border-block-start: 1px solid rgb(0 0 0 / 0.14);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45);
-    background: linear-gradient(rgb(0 0 0 / 0.07), transparent 38%);
-  }
-
-  .page__sheet p:nth-of-type(even) {
-    background: linear-gradient(rgb(0 0 0 / 0.07), transparent 38%), linear-gradient(transparent 60%, rgb(255 255 255 / 0.1));
+    border-block-start: 1px solid rgb(0 0 0 / 0.08);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+    background: linear-gradient(rgb(0 0 0 / 0.045), transparent 38%);
   }
 
   .page__sheet b {
@@ -249,34 +219,31 @@ const lie = [
     pointer-events: none;
   }
 
+  /* The light falls on the paper, under the ink: words and signatures stay fully black. */
+  .page__sheet p,
+  .page__sheet :global(.page__signers) {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* On white paper, light shows mostly as its absence: the sheet is a touch darker away from
+     where the light falls, and pure white where it lands. */
   .page__glare {
     background:
-      radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.2) 28%, transparent 58%),
-      linear-gradient(105deg, transparent calc(var(--gx) - 26%), rgb(255 255 255 / 0.32) var(--gx), transparent calc(var(--gx) + 22%));
-    mix-blend-mode: soft-light;
+      radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.35) 26%, transparent 55%),
+      radial-gradient(circle at var(--gx) var(--gy), transparent 30%, rgb(0 0 0 / 0.07) 120%);
   }
 
   /* Iridescence — the one place colour appears, and only as light: pale bands that slide as the
-     page turns, visible only inside the hot spot (masked to it) and only as a tint of the grey. */
+     page turns, visible only where the light lands (masked to the hot spot). */
   .page__sheen {
     background: repeating-linear-gradient(112deg, #ff9bd2 0%, #ffd88a 9%, #b6ff9e 18%, #8fe9ff 27%, #b7a4ff 36%, #ff9bd2 45%);
     background-size: 260% 260%;
     background-position: calc(var(--gx) * 1.4) calc(var(--gy) * 1.2);
-    -webkit-mask-image: radial-gradient(circle at var(--gx) var(--gy), #000, transparent 52%);
-    mask-image: radial-gradient(circle at var(--gx) var(--gy), #000, transparent 52%);
-    mix-blend-mode: color;
-    opacity: 0.3;
-  }
-
-  /* On black paper nothing can be tinted, so the light is added instead: a dim glow and shimmer. */
-  .page--ink .page__glare {
-    mix-blend-mode: screen;
+    -webkit-mask-image: radial-gradient(circle at var(--gx) var(--gy), #000, transparent 50%);
+    mask-image: radial-gradient(circle at var(--gx) var(--gy), #000, transparent 50%);
+    mix-blend-mode: multiply;
     opacity: 0.16;
-  }
-
-  .page--ink .page__sheen {
-    mix-blend-mode: screen;
-    opacity: 0.2;
   }
 
   /* ---- The foil seal: a silver sticker on the corner, standing a little off the paper ---- */
@@ -291,8 +258,8 @@ const lie = [
     border-radius: 50%;
     transform: translateZ(22px) rotate(12deg);
     box-shadow:
-      0 8px 14px -4px rgb(0 0 0 / 0.5),
-      0 0 0 1px rgb(255 255 255 / 0.5) inset;
+      0 8px 12px -4px rgb(0 0 0 / 0.3),
+      0 0 0 1px rgb(0 0 0 / 0.08);
     overflow: hidden;
   }
 
@@ -324,7 +291,7 @@ const lie = [
     content: '';
     position: absolute;
     inset: 5px;
-    border: 1.5px dashed rgb(20 20 20 / 0.55);
+    border: 1px dashed rgb(20 20 20 / 0.45);
     border-radius: 50%;
   }
 

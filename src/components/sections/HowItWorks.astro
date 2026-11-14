@@ -68,8 +68,9 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 600, qual
     --dot: 40px;
     --step-gap: var(--space-6);
     position: relative;
-    /* The dark shelf of finished pages sits above, so this section needs its own top gap. */
-    padding-block: var(--section-y);
+    /* No top padding: the paper-game section above has the same background and already ends
+       with a full section gap — adding ours doubled the space. */
+    padding-block: 0 var(--section-y);
     background: var(--color-bg);
   }
 

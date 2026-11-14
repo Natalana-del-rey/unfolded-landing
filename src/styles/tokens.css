@@ -23,7 +23,6 @@
   --tag: #dcdcda;
   --on-ink: #f6f6f5;
   --signal: #a8261b;        /* errors only */
-  --night: #121214;         /* landing only: the dark table finished pages are laid out on */
 
   /* ---------- Primitives: type families ---------- */
   --font-wordmark: "Newsreader Variable", "Newsreader", "Times New Roman", serif;
@@ -112,7 +111,6 @@
   --color-action-hover: var(--ink-soft);
   --color-action-text: var(--on-ink);
   --color-error: var(--signal);
-  --color-night: var(--night);
 
   --focus-ring: 2px solid var(--ink);
   --focus-offset: 3px;

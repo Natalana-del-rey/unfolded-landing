@@ -101,8 +101,6 @@ const stories = defineCollection({
   loader: file('src/content/stories.json'),
   schema: z.object({
     order,
-    /** The sheet it is written on: the app's paper, its shaded tone, or black paper with pale ink. */
-    stock: z.enum(['paper', 'shade', 'ink']),
     /** Whether the page carries the foil seal. */
     foil: z.boolean().default(false),
     lines: z.array(z.object({ join: z.string(), rest: z.string() })).min(2),

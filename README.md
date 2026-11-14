@@ -23,7 +23,7 @@ Measured on the live site on 2026-11-07.
 - **[Astro](https://astro.build) + TypeScript.** Static HTML, with JavaScript only where something moves.
 - **Plain CSS with design tokens** (CSS custom properties). No Tailwind, no CSS framework.
 - **GSAP + ScrollTrigger** for motion. **WebGL** for the folding paper sheet, ported from the game itself.
-- **Light, not colour.** The brand is black and white. Finished stories lie in a row on a dark table (on phones the row swipes
+- **Light, not colour.** The brand is black and white. Finished stories lie in a row (on phones the row swipes
   sideways); each page tilts toward the pointer with a moving glare, and the only colour on the site is the faint iridescence inside
   that glare. CSS and a little pointer maths, no images.
 - **Content collections.** Every word on the page lives in `src/content/*.json` and is checked against a schema
