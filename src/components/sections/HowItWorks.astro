@@ -68,6 +68,7 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 600, qual
     --dot: 40px;
     --step-gap: var(--space-6);
     position: relative;
+    /* The dark shelf of finished pages sits above, so this section needs its own top gap. */
     padding-block: var(--section-y);
     background: var(--color-bg);
   }
@@ -150,30 +151,6 @@ const paper = await getImage({ src: paperImage, format: 'webp', width: 600, qual
   .how__slip-wrap {
     position: relative;
     filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.06)) drop-shadow(0 10px 12px rgb(0 0 0 / 0.08));
-    transition:
-      transform var(--dur-fold) var(--ease-settle),
-      filter var(--dur-fold) var(--ease-settle);
-  }
-
-  /* The slips lie the way dropped paper lies: none of them quite straight. Each has a strip of
-     coloured tape along its top edge. Hover picks a slip up and squares it. */
-  .how__step:nth-child(3n + 1) { --lie: -1.4deg; --tape: var(--stock-coral); }
-  .how__step:nth-child(3n + 2) { --lie: 1deg; --tape: var(--stock-sky); }
-  .how__step:nth-child(3n + 3) { --lie: -0.6deg; --tape: var(--stock-mint); }
-
-  .how__slip-wrap {
-    transform: rotate(var(--lie, 0deg));
-  }
-
-  .how__slip {
-    border-block-start: 6px solid var(--tape, transparent);
-  }
-
-  @media (hover: hover) {
-    .how__step:hover .how__slip-wrap {
-      transform: translateY(-6px) rotate(0deg);
-      filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.06)) drop-shadow(0 22px 22px rgb(0 0 0 / 0.14));
-    }
   }
 
   .how__slip {

@@ -1,6 +1,6 @@
 ---
 /**
- * FinalCta — the page's sign-off, on a full band of highlighter yellow. The unicorn (in the hero's ink-line style) winks once
+ * FinalCta — the page's sign-off. The unicorn (in the hero's ink-line style) winks once
  * when it scrolls into view; copy and button fade up with the shared reveal.
  */
 import Section from '../ui/Section.astro';
@@ -15,20 +15,18 @@ type Props = {
 };
 
 const { cta, appUrl } = Astro.props;
-// Each sentence of the title stays whole on its own line where it fits.
-const titleSentences = cta.title.split(/(?<=[.!?])\s+/);
 ---
 
-<Section tone="highlight" labelledBy="final-cta-title" class="final-cta">
-  <Container class="final-cta__inner">
+<Section tone="paper" labelledBy="final-cta-title" class="final-cta">
+  <Container width="narrow" class="final-cta__inner">
     <div class="final-cta__group" data-reveal-group>
       <div data-reveal-item>
         <Mark variant="doodle" size={176} class="final-cta__mark" />
       </div>
-      <Heading level={2} size="hero" id="final-cta-title" class="final-cta__title" data-reveal-item>{titleSentences.map((sentence, i) => <>{i > 0 && ' '}<span class="final-cta__sentence">{sentence}</span></>)}</Heading>
+      <Heading level={2} id="final-cta-title" class="final-cta__title" data-reveal-item>{cta.title}</Heading>
       <p class="final-cta__lead" data-reveal-item>{cta.lead}</p>
       <div data-reveal-item>
-        <span class="final-cta__magnet" data-magnetic><Button href={appUrl} size="lg">{cta.primaryCta}</Button></span>
+        <Button href={appUrl} size="lg">{cta.primaryCta}</Button>
       </div>
     </div>
   </Container>
@@ -46,18 +44,6 @@ const titleSentences = cta.title.split(/(?<=[.!?])\s+/);
   .final-cta__group :global(.final-cta__mark) {
     --mark-size: clamp(128px, 22vw, 176px) !important;
     margin-block-end: calc(-1 * var(--space-2));
-  }
-
-  .final-cta__sentence {
-    display: inline-block;
-  }
-
-  .final-cta__magnet {
-    display: inline-block;
-  }
-
-  .final-cta__group :global(.final-cta__title) {
-    max-width: 11em;
   }
 
   .final-cta__lead {

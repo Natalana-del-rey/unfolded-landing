@@ -23,17 +23,7 @@
   --tag: #dcdcda;
   --on-ink: #f6f6f5;
   --signal: #a8261b;        /* errors only */
-
-  /* ---------- Primitives: colour (landing only) ----------
-     The app is ink on paper. The landing adds what a stationery drawer adds:
-     one highlighter, and a few sheets of coloured paper stock. Ink reads on all of them (≥ 7:1). */
-  --highlighter: #ffe14d;
-  --stock-butter: #f5d565;
-  --stock-coral: #f2917a;
-  --stock-sky: #93c4ec;
-  --stock-lilac: #bcabeb;
-  --stock-mint: #93d6b4;
-  --night: #121214;         /* the dark table the coloured sheets are laid out on */
+  --night: #121214;         /* landing only: the dark table finished pages are laid out on */
 
   /* ---------- Primitives: type families ---------- */
   --font-wordmark: "Newsreader Variable", "Newsreader", "Times New Roman", serif;
@@ -75,7 +65,7 @@
   --text-xl: 1.5rem;                                      /* 24px */
   --text-2xl: clamp(1.75rem, 1.31rem + 1.96vw, 2.875rem); /* 28 → 46px */
   --text-3xl: clamp(2.5rem, 1.91rem + 2.61vw, 4rem);      /* 40 → 64px */
-  --text-hero: clamp(3rem, min(1.2rem + 6.2vw, 14.5vh), 7rem); /* 48 → 112px, never taller than the screen allows */
+  --text-hero: clamp(3rem, 2.41rem + 2.61vw, 4.5rem);    /* 48 → 72px */
 
   --weight-regular: 400;
   --weight-medium: 500;
@@ -122,7 +112,6 @@
   --color-action-hover: var(--ink-soft);
   --color-action-text: var(--on-ink);
   --color-error: var(--signal);
-  --color-highlight: var(--highlighter);
   --color-night: var(--night);
 
   --focus-ring: 2px solid var(--ink);

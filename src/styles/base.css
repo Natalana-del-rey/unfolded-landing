@@ -88,20 +88,8 @@ p {
 }
 
 ::selection {
-  background: var(--color-highlight);
-  color: var(--color-text);
-}
-
-/* Paper grain over the whole page: a tiny tile of noise, fixed in place, so every flat
-   colour reads as a material. No blend mode — it's just faint specks — so scrolling stays cheap. */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  pointer-events: none;
-  opacity: 0.2;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 -.2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  background: var(--color-text);
+  color: var(--color-text-inverse);
 }
 
 /* Hidden visually but still read by screen readers. */

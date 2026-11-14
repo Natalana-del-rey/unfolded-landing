@@ -2,70 +2,73 @@
   {
     "id": "cat",
     "order": 1,
-    "stock": "butter",
+    "stock": "paper",
     "foil": true,
     "lines": [
-      { "join": "On a stormy night,", "rest": "Natalie found an old letter under the door." },
-      { "join": "Inside, in tiny handwriting, it said", "rest": "the cat had been paying the rent for years." },
-      { "join": "Nobody believed it", "rest": "until the landlord sent the cat a thank-you card." },
-      { "join": "By morning,", "rest": "the whole building wanted cat lessons." }
-    ]
-  },
-  {
-    "id": "wedding",
-    "order": 2,
-    "stock": "coral",
-    "lines": [
-      { "join": "It was supposed to be a quiet wedding,", "rest": "but the groom arrived riding a very confident goose." },
-      { "join": "The goose objected", "rest": "on the grounds that it had been promised cake." },
-      { "join": "So the priest declared", "rest": "the buffet legally married to everyone present." },
-      { "join": "To this day,", "rest": "nobody knows who got the toaster." }
+      {
+        "join": "On a stormy night,",
+        "rest": "Natalie found an old letter under the door."
+      },
+      {
+        "join": "Inside, in tiny handwriting, it said",
+        "rest": "the cat had been paying the rent for years."
+      },
+      {
+        "join": "Nobody believed it",
+        "rest": "until the landlord sent the cat a thank-you card."
+      },
+      {
+        "join": "By morning,",
+        "rest": "the whole building wanted cat lessons."
+      }
     ]
   },
   {
     "id": "whale",
-    "order": 3,
-    "stock": "sky",
+    "order": 2,
+    "stock": "ink",
     "foil": true,
     "lines": [
-      { "join": "Deep under the ocean,", "rest": "a whale was looking for its favourite chair." },
-      { "join": "It had last seen it", "rest": "at a jazz club for lighthouses." },
-      { "join": "The bartender swore", "rest": "the chair left with an umbrella around midnight." },
-      { "join": "And that is why", "rest": "you never lend furniture to the weather." }
-    ]
-  },
-  {
-    "id": "recipe",
-    "order": 4,
-    "stock": "lilac",
-    "lines": [
-      { "join": "Grandma’s secret recipe", "rest": "turned out to be a treasure map." },
-      { "join": "It led straight to", "rest": "the neighbour’s suspiciously large freezer." },
-      { "join": "Inside, they found", "rest": "forty years of unreturned Tupperware." },
-      { "join": "The trial begins", "rest": "as soon as someone finds the lids." }
-    ]
-  },
-  {
-    "id": "moon",
-    "order": 5,
-    "stock": "mint",
-    "lines": [
-      { "join": "The astronaut called home", "rest": "to say the moon was closed for renovations." },
-      { "join": "Mission control replied", "rest": "that they had only booked it for a birthday party." },
-      { "join": "Sadly, the cake", "rest": "was already in orbit and gaining speed." },
-      { "join": "Scientists now agree", "rest": "it will be back in 2041, still slightly warm." }
+      {
+        "join": "Deep under the ocean,",
+        "rest": "a whale was looking for its favourite chair."
+      },
+      {
+        "join": "It had last seen it",
+        "rest": "at a jazz club for lighthouses."
+      },
+      {
+        "join": "The bartender swore",
+        "rest": "the chair left with an umbrella around midnight."
+      },
+      {
+        "join": "And that is why",
+        "rest": "you never lend furniture to the weather."
+      }
     ]
   },
   {
     "id": "king",
-    "order": 6,
-    "stock": "paper",
-    "foil": true,
+    "order": 3,
+    "stock": "shade",
+    "foil": false,
     "lines": [
-      { "join": "On his first day as king,", "rest": "Daniel banned Mondays and socks." },
-      { "join": "The people responded", "rest": "by electing a pigeon as his therapist." },
-      { "join": "After three sessions,", "rest": "the pigeon owned half the kingdom." },
-      { "join": "History remembers it", "rest": "as a surprisingly stable government." }
+      {
+        "join": "On his first day as king,",
+        "rest": "Daniel banned Mondays and socks."
+      },
+      {
+        "join": "The people responded",
+        "rest": "by electing a pigeon as his therapist."
+      },
+      {
+        "join": "After three sessions,",
+        "rest": "the pigeon owned half the kingdom."
+      },
+      {
+        "join": "History remembers it",
+        "rest": "as a surprisingly stable government."
+      }
     ]
   }
 ]

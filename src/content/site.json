@@ -9,7 +9,6 @@
     "hero": {
       "eyebrow": "A party game for friends, on your phones",
       "title": "Write one story. Lose control of the plot.",
-      "titleHighlight": "one story.",
       "lead": "Take turns finishing a sentence and starting the next. Then read it out loud and discover what on earth you just created.",
       "primaryCta": "Start a game",
       "secondaryCta": {
@@ -52,10 +51,7 @@
     },
     "shelf": {
       "eyebrow": "Every game ends with one of these",
-      "title": "Same friends. A different disaster every time.",
-      "hint": "Drag the pages. They catch the light as they move.",
-      "prevLabel": "Previous story",
-      "nextLabel": "Next story"
+      "title": "Same friends. A different disaster every time."
     },
     "features": {
       "eyebrow": "What makes it Unfolded",

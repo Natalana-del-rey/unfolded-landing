@@ -34,8 +34,6 @@ const site = defineCollection({
     hero: z.object({
       eyebrow: z.string(),
       title: z.string(),
-      /** Words of the headline's first sentence that get the highlighter swipe (must appear in it). */
-      titleHighlight: z.string().optional(),
       lead: z.string(),
       primaryCta: z.string(),
       secondaryCta: cta,
@@ -53,8 +51,8 @@ const site = defineCollection({
       }),
     }),
     story: sectionIntro,
-    /** The side-scrolling shelf of finished pages: intro + the hint under it. */
-    shelf: sectionIntro.extend({ hint: z.string(), prevLabel: z.string(), nextLabel: z.string() }),
+    /** The row of finished pages. */
+    shelf: sectionIntro,
     features: sectionIntro,
     howItWorks: sectionIntro,
     testimonials: sectionIntro,
@@ -103,9 +101,9 @@ const stories = defineCollection({
   loader: file('src/content/stories.json'),
   schema: z.object({
     order,
-    /** The paper stock the page is printed on (a --stock-* token; "paper" = the app's plain sheet). */
-    stock: z.enum(['butter', 'coral', 'sky', 'lilac', 'mint', 'paper']),
-    /** Whether the page carries the iridescent foil seal. */
+    /** The sheet it is written on: the app's paper, its shaded tone, or black paper with pale ink. */
+    stock: z.enum(['paper', 'shade', 'ink']),
+    /** Whether the page carries the foil seal. */
     foil: z.boolean().default(false),
     lines: z.array(z.object({ join: z.string(), rest: z.string() })).min(2),
   }),

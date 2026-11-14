@@ -1,14 +1,16 @@
 ---
 /**
- * StoryShelf — finished pages laid out on a dark table, scrolling sideways.
+ * StoryShelf — a few finished pages laid out on a dark table.
  *
- * Each page is a sheet of coloured paper stock (the --stock-* tokens) carrying one whole story,
- * folded once per sentence and signed. Pages are objects, not pictures:
+ * Black and white, like the rest of the brand: each page is the app's paper (plain, shaded, or
+ * black paper with pale ink) carrying one whole story, folded once per sentence and signed.
+ * Pages are objects, not pictures:
  *   - they turn to face you as they cross the screen, so light slides over them while you scroll;
  *   - under a mouse they tilt toward the pointer, with a glare that follows it;
- *   - some carry an iridescent foil seal, and the plain white page has a holographic sheen.
- * Scrolling: native sideways scrolling (swipe / trackpad / Shift+wheel / arrow keys when focused),
- * plus drag with a mouse and the two arrow buttons. Nothing is pinned.
+ *   - some carry a silver foil seal.
+ * The only colour is light: a faint iridescence inside the glare, where the light actually falls.
+ * Desktop: the pages sit in one row; nothing scrolls. Phones: three pages can't fit side by
+ * side, so the row swipes sideways (native scrolling, no script).
  * Reduced motion: the pages lie flat and still; the glare still follows a hovering pointer.
  *
  * The stories in src/content/stories.json are SAMPLES written for this page.
@@ -31,38 +33,24 @@ const { intro, stories, signers } = Astro.props;
 const paper = await getImage({ src: paperImage, format: 'webp', width: 700, quality: 75 });
 // How each page lies on the table: a small turn and a small step up or down.
 const lie = [
-  { turn: -2.5, step: 0 },
-  { turn: 1.8, step: 22 },
-  { turn: -1.2, step: -6 },
-  { turn: 2.6, step: 16 },
-  { turn: -2, step: 4 },
-  { turn: 1.4, step: 24 },
+  { turn: -1.6, step: 0 },
+  { turn: 1.1, step: 18 },
+  { turn: -0.7, step: -4 },
+  { turn: 1.5, step: 12 },
+  { turn: -1.2, step: 4 },
+  { turn: 0.8, step: 18 },
 ];
 ---
 
 <section class="shelf" aria-labelledby="shelf-title" style={`--paper-texture: url(${paper.src})`}>
   <Container>
-    <div class="shelf__head">
-      <header class="shelf__intro" data-reveal>
-        <p class="eyebrow">{intro.eyebrow}</p>
-        <Heading level={2} id="shelf-title">{intro.title}</Heading>
-      </header>
-      <div class="shelf__controls">
-        <p class="shelf__hint">{intro.hint}</p>
-        <div class="shelf__arrows">
-          <button type="button" class="shelf__arrow" data-shelf-dir="-1" aria-label={intro.prevLabel}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7" /></svg>
-          </button>
-          <button type="button" class="shelf__arrow" data-shelf-dir="1" aria-label={intro.nextLabel}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 5l7 7-7 7" /></svg>
-          </button>
-        </div>
-      </div>
-    </div>
+    <header class="shelf__intro" data-reveal>
+      <p class="eyebrow">{intro.eyebrow}</p>
+      <Heading level={2} id="shelf-title">{intro.title}</Heading>
+    </header>
   </Container>
 
-  <!-- Focusable, so the keyboard's arrow keys scroll it. -->
-  <div class="shelf__scroller" role="region" aria-labelledby="shelf-title" tabindex="0" data-shelf>
+  <div class="shelf__scroller" data-shelf>
     <ol class="shelf__track" role="list">
       {
         stories.map(({ data }, i) => {
@@ -70,7 +58,7 @@ const lie = [
           return (
             <li
               class:list={['page', `page--${data.stock}`, data.foil && 'page--foil']}
-              style={`--stock: var(--stock-${data.stock}, var(--paper)); --turn: ${turn}deg; --step: ${step}px`}
+              style={`--turn: ${turn}deg; --step: ${step}px`}
             >
               <div class="page__tilt">
                 <div class="page__sheet">
@@ -105,13 +93,7 @@ const lie = [
     background: var(--color-night);
     color: var(--color-text-inverse);
     overflow-x: clip;
-    --focus-ring: 2px solid var(--color-highlight);
-  }
-
-  .shelf__head {
-    display: grid;
-    gap: var(--space-6);
-    align-items: end;
+    --focus-ring: 2px solid var(--color-text-inverse);
   }
 
   .shelf__intro {
@@ -122,113 +104,22 @@ const lie = [
   }
 
   .shelf__intro .eyebrow {
-    color: var(--color-highlight);
-  }
-
-  .shelf__controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-5);
-  }
-
-  .shelf__hint {
-    max-width: 20rem;
-    font-size: var(--text-sm);
     color: color-mix(in srgb, var(--color-text-inverse) 62%, transparent);
   }
 
-  .shelf__arrows {
-    display: flex;
-    gap: var(--space-2);
-  }
-
-  .shelf__arrow {
-    display: grid;
-    place-items: center;
-    inline-size: 48px;
-    block-size: 48px;
-    border: 1.5px solid color-mix(in srgb, var(--color-text-inverse) 40%, transparent);
-    border-radius: 50%;
-    background: none;
-    color: inherit;
-    cursor: pointer;
-    transition:
-      background-color var(--dur-fast) ease-out,
-      color var(--dur-fast) ease-out,
-      border-color var(--dur-fast) ease-out,
-      opacity var(--dur-fast) ease-out;
-  }
-
-  .shelf__arrow svg {
-    inline-size: 20px;
-    block-size: 20px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.75;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  :global([dir='rtl']) .shelf__arrow svg {
-    transform: scaleX(-1);
-  }
-
-  .shelf__arrow:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-
-  @media (hover: hover) {
-    .shelf__arrow:not(:disabled):hover {
-      background: var(--color-highlight);
-      border-color: var(--color-highlight);
-      color: var(--color-text);
-    }
-  }
-
-  @media (min-width: 960px) {
-    .shelf__head {
-      grid-template-columns: 1fr auto;
-    }
-
-    .shelf__controls {
-      flex-direction: column;
-      align-items: flex-end;
-      text-align: end;
-    }
-  }
-
-  /* ---- The sideways scroller ---- */
+  /* ---- The row. Phones: it swipes sideways. Desktop: everything fits, nothing scrolls. ---- */
   .shelf__scroller {
     /* Lines the first page up with the page container, at any screen width. */
     --edge: max(var(--gutter), calc((100vw - var(--container-max)) / 2));
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
-    overscroll-behavior-x: contain;
-    cursor: grab;
-    -webkit-user-select: none;
-    user-select: none;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--edge);
   }
 
   .shelf__scroller::-webkit-scrollbar {
     display: none;
-  }
-
-  .shelf__scroller.is-dragging {
-    cursor: grabbing;
-  }
-
-  .shelf__scroller:focus-visible {
-    outline-offset: -4px;
-  }
-
-  @media (pointer: coarse) {
-    .shelf__scroller {
-      scroll-snap-type: x proximity;
-      scroll-padding-inline: var(--edge);
-    }
   }
 
   .shelf__track {
@@ -240,7 +131,26 @@ const lie = [
     list-style: none;
   }
 
+  @media (min-width: 960px) {
+    .shelf__scroller {
+      overflow: visible;
+    }
+
+    .shelf__track {
+      inline-size: auto;
+      justify-content: space-between;
+    }
+  }
+
   /* ---- One page ---- */
+  @media (min-width: 960px) {
+    .page {
+      flex: 0 1 344px;
+      inline-size: auto;
+      min-inline-size: 0;
+    }
+  }
+
   .page {
     --ry: 0; /* turn toward the viewer, set by the script (degrees) */
     --rx: 0;
@@ -248,7 +158,7 @@ const lie = [
     --gy: 20%;
     --lift: 0;
     flex: none;
-    inline-size: clamp(264px, 76vw, 336px);
+    inline-size: clamp(264px, 76vw, 344px);
     perspective: 1100px;
     transform: translateY(var(--step)) rotate(var(--turn));
     scroll-snap-align: start;
@@ -266,6 +176,7 @@ const lie = [
   }
 
   .page__sheet {
+    --stock: var(--paper);
     position: relative;
     padding: 22px 26px 16px;
     background:
@@ -279,6 +190,24 @@ const lie = [
     color: var(--ink);
     font: var(--weight-regular) 17px / 1.5 var(--font-display);
     overflow: hidden;
+  }
+
+  .page--shade .page__sheet {
+    --stock: var(--hairline);
+  }
+
+  /* Black paper, pale ink: creases and signatures turn light. */
+  .page--ink .page__sheet {
+    background: #1c1c1e;
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.12) inset,
+      0 0 0 1px rgb(255 255 255 / 0.07),
+      0 30px 40px -18px rgb(0 0 0 / 0.9);
+    color: var(--on-ink);
+  }
+
+  .page--ink .page__sheet :global(.signature) {
+    color: var(--on-ink);
   }
 
   /* One fold per sentence: a crease (dark line, light line) and a soft shade under it. */
@@ -322,40 +251,35 @@ const lie = [
 
   .page__glare {
     background:
-      radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.18) 28%, transparent 58%),
-      linear-gradient(105deg, transparent calc(var(--gx) - 26%), rgb(255 255 255 / 0.3) var(--gx), transparent calc(var(--gx) + 22%));
+      radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.2) 28%, transparent 58%),
+      linear-gradient(105deg, transparent calc(var(--gx) - 26%), rgb(255 255 255 / 0.32) var(--gx), transparent calc(var(--gx) + 22%));
     mix-blend-mode: soft-light;
   }
 
-  /* Iridescence: bands of pale colour that slide as the page turns. On coloured stock it is a
-     whisper; on the plain white page it is the whole point. */
+  /* Iridescence — the one place colour appears, and only as light: pale bands that slide as the
+     page turns, visible only inside the hot spot (masked to it) and only as a tint of the grey. */
   .page__sheen {
-    background: repeating-linear-gradient(
-      112deg,
-      #ff9bd2 0%,
-      #ffd88a 9%,
-      #b6ff9e 18%,
-      #8fe9ff 27%,
-      #b7a4ff 36%,
-      #ff9bd2 45%
-    );
+    background: repeating-linear-gradient(112deg, #ff9bd2 0%, #ffd88a 9%, #b6ff9e 18%, #8fe9ff 27%, #b7a4ff 36%, #ff9bd2 45%);
     background-size: 260% 260%;
     background-position: calc(var(--gx) * 1.4) calc(var(--gy) * 1.2);
-    mix-blend-mode: color-dodge;
-    opacity: 0.08;
+    -webkit-mask-image: radial-gradient(circle at var(--gx) var(--gy), #000, transparent 52%);
+    mask-image: radial-gradient(circle at var(--gx) var(--gy), #000, transparent 52%);
+    mix-blend-mode: color;
+    opacity: 0.3;
   }
 
-  .page--paper .page__sheen {
-    mix-blend-mode: multiply;
-    opacity: 0.6;
-    filter: saturate(1.25);
+  /* On black paper nothing can be tinted, so the light is added instead: a dim glow and shimmer. */
+  .page--ink .page__glare {
+    mix-blend-mode: screen;
+    opacity: 0.16;
   }
 
-  .page--paper .page__glare {
-    mix-blend-mode: overlay;
+  .page--ink .page__sheen {
+    mix-blend-mode: screen;
+    opacity: 0.2;
   }
 
-  /* ---- The foil seal: a sticker on the corner, standing a little off the paper ---- */
+  /* ---- The foil seal: a silver sticker on the corner, standing a little off the paper ---- */
   .seal {
     position: absolute;
     inset-block-end: -22px;
@@ -372,6 +296,7 @@ const lie = [
     overflow: hidden;
   }
 
+  /* Brushed silver that turns with the page; the same masked shimmer where the light hits it. */
   .seal__foil {
     position: absolute;
     inset: 0;
@@ -379,18 +304,19 @@ const lie = [
       radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.95), transparent 46%),
       conic-gradient(
         from calc(var(--ry) * 9deg + var(--rx) * 7deg),
-        #ffb3e0,
-        #ffe9a3,
-        #b9ffc4,
-        #a6eeff,
-        #c9b8ff,
-        #ffb3e0,
-        #ffe9a3,
-        #b9ffc4,
-        #a6eeff,
-        #c9b8ff,
-        #ffb3e0
+        #f4f4f2, #a9a9a6, #fbfbfa, #8c8c8c, #ececeb, #b4b4b1, #ffffff, #9a9a97, #f4f4f2
       );
+  }
+
+  .seal__foil::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(from calc(var(--ry) * 14deg), #ff9bd2, #ffd88a, #b6ff9e, #8fe9ff, #b7a4ff, #ff9bd2);
+    -webkit-mask-image: radial-gradient(circle at var(--gx) var(--gy), #000, transparent 60%);
+    mask-image: radial-gradient(circle at var(--gx) var(--gy), #000, transparent 60%);
+    mix-blend-mode: color;
+    opacity: 0.4;
   }
 
   /* A ring of fine dashes, like the milled edge of a stamped seal. */
@@ -421,15 +347,12 @@ const lie = [
 
   const scroller = document.querySelector<HTMLElement>('[data-shelf]');
   if (scroller) {
-    const section = scroller.closest<HTMLElement>('.shelf')!;
     const pages = Array.from(scroller.querySelectorAll<HTMLElement>('.page'));
-    const arrows = Array.from(section.querySelectorAll<HTMLButtonElement>('[data-shelf-dir]'));
     const reduced = prefersReducedMotion();
-    const rtl = getComputedStyle(scroller).direction === 'rtl';
     let held: HTMLElement | null = null; // the page under the pointer
 
     // ---- Light and turn from position: a page left of centre turns its face right (toward you),
-    // and the light slides across it as it travels. Runs on sideways scroll and resize.
+    // and the light slides across it as it travels. Runs on sideways scroll (phones) and resize.
     const place = () => {
       const mid = window.innerWidth / 2;
       for (const page of pages) {
@@ -441,9 +364,6 @@ const lie = [
         page.style.setProperty('--gx', `${(50 - off * 70).toFixed(1)}%`);
         page.style.setProperty('--gy', '18%');
       }
-      const max = scroller.scrollWidth - scroller.clientWidth;
-      const at = Math.abs(scroller.scrollLeft);
-      arrows.forEach((b) => (b.disabled = b.dataset.shelfDir === '-1' ? at < 4 : at > max - 4));
     };
     let queued = false;
     const queuePlace = () => {
@@ -462,7 +382,6 @@ const lie = [
     if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
       pages.forEach((page) => {
         page.addEventListener('pointermove', (e) => {
-          if (scroller.classList.contains('is-dragging')) return;
           const r = page.getBoundingClientRect();
           const px = (e.clientX - r.left) / r.width;
           const py = (e.clientY - r.top) / r.height;
@@ -483,64 +402,14 @@ const lie = [
       });
     }
 
-    // ---- Arrow buttons: one page at a time.
-    const stride = () => {
-      const [a, b] = pages;
-      return b ? Math.abs(b.getBoundingClientRect().left - a.getBoundingClientRect().left) : scroller.clientWidth * 0.8;
-    };
-    arrows.forEach((button) => {
-      button.addEventListener('click', () => {
-        const dir = Number(button.dataset.shelfDir) * (rtl ? -1 : 1);
-        scroller.scrollBy({ left: dir * stride(), behavior: reduced ? 'auto' : 'smooth' });
-      });
-    });
-
-    // ---- Drag with a mouse (touch and trackpads already scroll sideways natively).
-    // Letting go keeps the pages gliding for a moment.
-    let drag: { x: number; left: number; last: number; time: number; speed: number } | null = null;
-    let glide: gsap.core.Tween | null = null;
-    scroller.addEventListener('pointerdown', (e) => {
-      if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      glide?.kill();
-      drag = { x: e.clientX, left: scroller.scrollLeft, last: e.clientX, time: performance.now(), speed: 0 };
-    });
-    window.addEventListener('pointermove', (e) => {
-      if (!drag) return;
-      const moved = e.clientX - drag.x;
-      if (!scroller.classList.contains('is-dragging') && Math.abs(moved) < 4) return;
-      scroller.classList.add('is-dragging');
-      if (held) {
-        held.classList.remove('is-held');
-        held.style.setProperty('--lift', '0');
-        held = null;
-      }
-      scroller.scrollLeft = drag.left - moved;
-      const now = performance.now();
-      drag.speed = (e.clientX - drag.last) / Math.max(1, now - drag.time); // px per ms
-      drag.last = e.clientX;
-      drag.time = now;
-    });
-    const release = () => {
-      if (!drag) return;
-      const { speed } = drag;
-      drag = null;
-      scroller.classList.remove('is-dragging');
-      if (!reduced && Math.abs(speed) > 0.2) {
-        glide = gsap.to(scroller, { scrollLeft: scroller.scrollLeft - speed * 320, duration: 0.9, ease: 'power3.out' });
-      }
-    };
-    window.addEventListener('pointerup', release);
-    window.addEventListener('pointercancel', release);
-
-    // ---- Entrance: the pages are dealt onto the table from the right, one after another.
+    // ---- Entrance: the pages slide into place from the side, one after another. No bounce.
     if (!reduced) {
       gsap.from(pages, {
-        x: () => window.innerWidth * 0.5,
-        rotation: 14,
+        x: 60,
         opacity: 0,
-        duration: 1,
-        ease: 'power3.out',
-        stagger: 0.09,
+        duration: 0.8,
+        ease: 'power2.out',
+        stagger: 0.07,
         clearProps: 'transform,opacity',
         scrollTrigger: { trigger: scroller, start: 'top 80%', once: true },
         onUpdate: queuePlace,

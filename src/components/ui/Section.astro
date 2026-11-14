@@ -7,7 +7,7 @@
 type Props = {
   id?: string;
   labelledBy?: string;
-  tone?: 'ground' | 'paper' | 'ink' | 'highlight';
+  tone?: 'ground' | 'paper' | 'ink';
   class?: string;
 };
 
@@ -30,10 +30,6 @@ const { id, labelledBy, tone = 'ground', class: className } = Astro.props;
 
   .section--paper {
     background: var(--color-surface);
-  }
-
-  .section--highlight {
-    background: var(--color-highlight);
   }
 
   .section--ink {
