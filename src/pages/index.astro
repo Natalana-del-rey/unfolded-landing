@@ -4,6 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteHeader from '../components/sections/SiteHeader.astro';
 import Hero from '../components/sections/Hero.astro';
 import PaperStory from '../components/sections/PaperStory.astro';
+import StoryShelf from '../components/sections/StoryShelf.astro';
 import HowItWorks from '../components/sections/HowItWorks.astro';
 import Faq from '../components/sections/Faq.astro';
 import FinalCta from '../components/sections/FinalCta.astro';
@@ -12,8 +13,10 @@ import SiteFooter from '../components/sections/SiteFooter.astro';
 
 const site = await getEntry('site', 'home');
 if (!site) throw new Error('src/content/site.json is missing the "home" entry');
-const { meta, appUrl, hero, story, howItWorks, faq, finalCta, googleSignIn, footer } = site.data;
+const { meta, appUrl, hero, story, shelf, howItWorks, faq, finalCta, googleSignIn, footer } = site.data;
 const storySteps = (await getCollection('story')).sort((a, b) => a.data.order - b.data.order);
+const shelfStories = (await getCollection('stories')).sort((a, b) => a.data.order - b.data.order);
+const signers = storySteps.find((s) => s.data.visual === 'sheet')?.data.signers ?? [];
 const faqItems = (await getCollection('faq')).sort((a, b) => a.data.order - b.data.order);
 const howSteps = (await getCollection('steps')).sort((a, b) => a.data.order - b.data.order);
 ---
@@ -23,6 +26,7 @@ const howSteps = (await getCollection('steps')).sort((a, b) => a.data.order - b.
   <main id="main">
     <Hero hero={hero} appUrl={appUrl} />
     <PaperStory intro={story} steps={storySteps} sheet={hero.sheet} />
+    <StoryShelf intro={shelf} stories={shelfStories} signers={signers} />
     <HowItWorks intro={howItWorks} steps={howSteps} />
     <Faq intro={faq} items={faqItems} />
     <FinalCta cta={finalCta} appUrl={appUrl} />

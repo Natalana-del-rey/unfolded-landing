@@ -1,0 +1,551 @@
+---
+/**
+ * StoryShelf — finished pages laid out on a dark table, scrolling sideways.
+ *
+ * Each page is a sheet of coloured paper stock (the --stock-* tokens) carrying one whole story,
+ * folded once per sentence and signed. Pages are objects, not pictures:
+ *   - they turn to face you as they cross the screen, so light slides over them while you scroll;
+ *   - under a mouse they tilt toward the pointer, with a glare that follows it;
+ *   - some carry an iridescent foil seal, and the plain white page has a holographic sheen.
+ * Scrolling: native sideways scrolling (swipe / trackpad / Shift+wheel / arrow keys when focused),
+ * plus drag with a mouse and the two arrow buttons. Nothing is pinned.
+ * Reduced motion: the pages lie flat and still; the glare still follows a hovering pointer.
+ *
+ * The stories in src/content/stories.json are SAMPLES written for this page.
+ */
+import type { CollectionEntry } from 'astro:content';
+import { getImage } from 'astro:assets';
+import paperImage from '../../assets/img/paper.png';
+import sealMark from '../../assets/img/mark-doodle.svg?url';
+import Container from '../ui/Container.astro';
+import Heading from '../ui/Heading.astro';
+import Signatures from './Signatures.astro';
+
+interface Props {
+  intro: CollectionEntry<'site'>['data']['shelf'];
+  stories: CollectionEntry<'stories'>[];
+  signers: string[];
+}
+
+const { intro, stories, signers } = Astro.props;
+const paper = await getImage({ src: paperImage, format: 'webp', width: 700, quality: 75 });
+// How each page lies on the table: a small turn and a small step up or down.
+const lie = [
+  { turn: -2.5, step: 0 },
+  { turn: 1.8, step: 22 },
+  { turn: -1.2, step: -6 },
+  { turn: 2.6, step: 16 },
+  { turn: -2, step: 4 },
+  { turn: 1.4, step: 24 },
+];
+---
+
+<section class="shelf" aria-labelledby="shelf-title" style={`--paper-texture: url(${paper.src})`}>
+  <Container>
+    <div class="shelf__head">
+      <header class="shelf__intro" data-reveal>
+        <p class="eyebrow">{intro.eyebrow}</p>
+        <Heading level={2} id="shelf-title">{intro.title}</Heading>
+      </header>
+      <div class="shelf__controls">
+        <p class="shelf__hint">{intro.hint}</p>
+        <div class="shelf__arrows">
+          <button type="button" class="shelf__arrow" data-shelf-dir="-1" aria-label={intro.prevLabel}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7" /></svg>
+          </button>
+          <button type="button" class="shelf__arrow" data-shelf-dir="1" aria-label={intro.nextLabel}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </Container>
+
+  <!-- Focusable, so the keyboard's arrow keys scroll it. -->
+  <div class="shelf__scroller" role="region" aria-labelledby="shelf-title" tabindex="0" data-shelf>
+    <ol class="shelf__track" role="list">
+      {
+        stories.map(({ data }, i) => {
+          const { turn, step } = lie[i % lie.length];
+          return (
+            <li
+              class:list={['page', `page--${data.stock}`, data.foil && 'page--foil']}
+              style={`--stock: var(--stock-${data.stock}, var(--paper)); --turn: ${turn}deg; --step: ${step}px`}
+            >
+              <div class="page__tilt">
+                <div class="page__sheet">
+                  {data.lines.map((line) => (
+                    <p>
+                      <b>{line.join}</b> {line.rest}
+                    </p>
+                  ))}
+                  <Signatures names={signers} class="page__signers" />
+                  <span class="page__sheen" aria-hidden="true" />
+                  <span class="page__glare" aria-hidden="true" />
+                </div>
+                {data.foil && (
+                  <span class="seal" aria-hidden="true">
+                    <span class="seal__foil" />
+                    <img src={sealMark} alt="" width="44" height="50" loading="lazy" decoding="async" />
+                  </span>
+                )}
+              </div>
+            </li>
+          );
+        })
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .shelf {
+    position: relative;
+    padding-block: var(--section-y) var(--space-7);
+    background: var(--color-night);
+    color: var(--color-text-inverse);
+    overflow-x: clip;
+    --focus-ring: 2px solid var(--color-highlight);
+  }
+
+  .shelf__head {
+    display: grid;
+    gap: var(--space-6);
+    align-items: end;
+  }
+
+  .shelf__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 44rem;
+  }
+
+  .shelf__intro .eyebrow {
+    color: var(--color-highlight);
+  }
+
+  .shelf__controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+  }
+
+  .shelf__hint {
+    max-width: 20rem;
+    font-size: var(--text-sm);
+    color: color-mix(in srgb, var(--color-text-inverse) 62%, transparent);
+  }
+
+  .shelf__arrows {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .shelf__arrow {
+    display: grid;
+    place-items: center;
+    inline-size: 48px;
+    block-size: 48px;
+    border: 1.5px solid color-mix(in srgb, var(--color-text-inverse) 40%, transparent);
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) ease-out,
+      color var(--dur-fast) ease-out,
+      border-color var(--dur-fast) ease-out,
+      opacity var(--dur-fast) ease-out;
+  }
+
+  .shelf__arrow svg {
+    inline-size: 20px;
+    block-size: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  :global([dir='rtl']) .shelf__arrow svg {
+    transform: scaleX(-1);
+  }
+
+  .shelf__arrow:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  @media (hover: hover) {
+    .shelf__arrow:not(:disabled):hover {
+      background: var(--color-highlight);
+      border-color: var(--color-highlight);
+      color: var(--color-text);
+    }
+  }
+
+  @media (min-width: 960px) {
+    .shelf__head {
+      grid-template-columns: 1fr auto;
+    }
+
+    .shelf__controls {
+      flex-direction: column;
+      align-items: flex-end;
+      text-align: end;
+    }
+  }
+
+  /* ---- The sideways scroller ---- */
+  .shelf__scroller {
+    /* Lines the first page up with the page container, at any screen width. */
+    --edge: max(var(--gutter), calc((100vw - var(--container-max)) / 2));
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .shelf__scroller::-webkit-scrollbar {
+    display: none;
+  }
+
+  .shelf__scroller.is-dragging {
+    cursor: grabbing;
+  }
+
+  .shelf__scroller:focus-visible {
+    outline-offset: -4px;
+  }
+
+  @media (pointer: coarse) {
+    .shelf__scroller {
+      scroll-snap-type: x proximity;
+      scroll-padding-inline: var(--edge);
+    }
+  }
+
+  .shelf__track {
+    display: flex;
+    gap: clamp(var(--space-5), 3.5vw, var(--space-7));
+    inline-size: max-content;
+    margin: 0;
+    padding: var(--space-8) var(--edge) var(--space-8);
+    list-style: none;
+  }
+
+  /* ---- One page ---- */
+  .page {
+    --ry: 0; /* turn toward the viewer, set by the script (degrees) */
+    --rx: 0;
+    --gx: 30%; /* where the light falls */
+    --gy: 20%;
+    --lift: 0;
+    flex: none;
+    inline-size: clamp(264px, 76vw, 336px);
+    perspective: 1100px;
+    transform: translateY(var(--step)) rotate(var(--turn));
+    scroll-snap-align: start;
+  }
+
+  .page__tilt {
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateX(calc(var(--rx) * 1deg)) rotateY(calc(var(--ry) * 1deg)) translateZ(calc(var(--lift) * 26px));
+    transition: transform 380ms var(--ease-out);
+  }
+
+  .page.is-held .page__tilt {
+    transition-duration: 120ms;
+  }
+
+  .page__sheet {
+    position: relative;
+    padding: 22px 26px 16px;
+    background:
+      var(--paper-texture) center / cover,
+      var(--stock);
+    background-blend-mode: multiply;
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.35) inset,
+      0 30px 40px -18px rgb(0 0 0 / 0.75),
+      0 4px 6px rgb(0 0 0 / 0.3);
+    color: var(--ink);
+    font: var(--weight-regular) 17px / 1.5 var(--font-display);
+    overflow: hidden;
+  }
+
+  /* One fold per sentence: a crease (dark line, light line) and a soft shade under it. */
+  .page__sheet p {
+    position: relative;
+    margin-inline: -26px;
+    padding: 12px 26px 13px;
+  }
+
+  .page__sheet p + p {
+    border-block-start: 1px solid rgb(0 0 0 / 0.14);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45);
+    background: linear-gradient(rgb(0 0 0 / 0.07), transparent 38%);
+  }
+
+  .page__sheet p:nth-of-type(even) {
+    background: linear-gradient(rgb(0 0 0 / 0.07), transparent 38%), linear-gradient(transparent 60%, rgb(255 255 255 / 0.1));
+  }
+
+  .page__sheet b {
+    font-weight: 600;
+  }
+
+  .page__sheet :global(.page__signers) {
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-block: var(--space-4) var(--space-2);
+  }
+
+  .page__sheet :global(.signature svg) {
+    width: calc(var(--w) * 0.7);
+  }
+
+  /* The light: a soft hot spot where the light falls, and a long streak across the sheet. */
+  .page__glare,
+  .page__sheen {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .page__glare {
+    background:
+      radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.18) 28%, transparent 58%),
+      linear-gradient(105deg, transparent calc(var(--gx) - 26%), rgb(255 255 255 / 0.3) var(--gx), transparent calc(var(--gx) + 22%));
+    mix-blend-mode: soft-light;
+  }
+
+  /* Iridescence: bands of pale colour that slide as the page turns. On coloured stock it is a
+     whisper; on the plain white page it is the whole point. */
+  .page__sheen {
+    background: repeating-linear-gradient(
+      112deg,
+      #ff9bd2 0%,
+      #ffd88a 9%,
+      #b6ff9e 18%,
+      #8fe9ff 27%,
+      #b7a4ff 36%,
+      #ff9bd2 45%
+    );
+    background-size: 260% 260%;
+    background-position: calc(var(--gx) * 1.4) calc(var(--gy) * 1.2);
+    mix-blend-mode: color-dodge;
+    opacity: 0.08;
+  }
+
+  .page--paper .page__sheen {
+    mix-blend-mode: multiply;
+    opacity: 0.6;
+    filter: saturate(1.25);
+  }
+
+  .page--paper .page__glare {
+    mix-blend-mode: overlay;
+  }
+
+  /* ---- The foil seal: a sticker on the corner, standing a little off the paper ---- */
+  .seal {
+    position: absolute;
+    inset-block-end: -22px;
+    inset-inline-end: -18px;
+    display: grid;
+    place-items: center;
+    inline-size: 84px;
+    block-size: 84px;
+    border-radius: 50%;
+    transform: translateZ(22px) rotate(12deg);
+    box-shadow:
+      0 8px 14px -4px rgb(0 0 0 / 0.5),
+      0 0 0 1px rgb(255 255 255 / 0.5) inset;
+    overflow: hidden;
+  }
+
+  .seal__foil {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.95), transparent 46%),
+      conic-gradient(
+        from calc(var(--ry) * 9deg + var(--rx) * 7deg),
+        #ffb3e0,
+        #ffe9a3,
+        #b9ffc4,
+        #a6eeff,
+        #c9b8ff,
+        #ffb3e0,
+        #ffe9a3,
+        #b9ffc4,
+        #a6eeff,
+        #c9b8ff,
+        #ffb3e0
+      );
+  }
+
+  /* A ring of fine dashes, like the milled edge of a stamped seal. */
+  .seal::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1.5px dashed rgb(20 20 20 / 0.55);
+    border-radius: 50%;
+  }
+
+  .seal img {
+    position: relative;
+    inline-size: 44px;
+    block-size: 50px;
+    object-fit: contain;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page__tilt {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  import { gsap, prefersReducedMotion } from '../../scripts/motion';
+
+  const scroller = document.querySelector<HTMLElement>('[data-shelf]');
+  if (scroller) {
+    const section = scroller.closest<HTMLElement>('.shelf')!;
+    const pages = Array.from(scroller.querySelectorAll<HTMLElement>('.page'));
+    const arrows = Array.from(section.querySelectorAll<HTMLButtonElement>('[data-shelf-dir]'));
+    const reduced = prefersReducedMotion();
+    const rtl = getComputedStyle(scroller).direction === 'rtl';
+    let held: HTMLElement | null = null; // the page under the pointer
+
+    // ---- Light and turn from position: a page left of centre turns its face right (toward you),
+    // and the light slides across it as it travels. Runs on sideways scroll and resize.
+    const place = () => {
+      const mid = window.innerWidth / 2;
+      for (const page of pages) {
+        if (page === held) continue;
+        const r = page.getBoundingClientRect();
+        const off = Math.max(-1, Math.min(1, (r.left + r.width / 2 - mid) / mid)); // -1 left edge … 1 right edge
+        page.style.setProperty('--ry', reduced ? '0' : (off * -16).toFixed(2));
+        page.style.setProperty('--rx', '0');
+        page.style.setProperty('--gx', `${(50 - off * 70).toFixed(1)}%`);
+        page.style.setProperty('--gy', '18%');
+      }
+      const max = scroller.scrollWidth - scroller.clientWidth;
+      const at = Math.abs(scroller.scrollLeft);
+      arrows.forEach((b) => (b.disabled = b.dataset.shelfDir === '-1' ? at < 4 : at > max - 4));
+    };
+    let queued = false;
+    const queuePlace = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        place();
+      });
+    };
+    scroller.addEventListener('scroll', queuePlace, { passive: true });
+    window.addEventListener('resize', queuePlace);
+    place();
+
+    // ---- Under a mouse: the page tilts toward the pointer and the glare follows it.
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      pages.forEach((page) => {
+        page.addEventListener('pointermove', (e) => {
+          if (scroller.classList.contains('is-dragging')) return;
+          const r = page.getBoundingClientRect();
+          const px = (e.clientX - r.left) / r.width;
+          const py = (e.clientY - r.top) / r.height;
+          held = page;
+          page.classList.add('is-held');
+          page.style.setProperty('--ry', ((px - 0.5) * 22).toFixed(2));
+          page.style.setProperty('--rx', ((0.5 - py) * 16).toFixed(2));
+          page.style.setProperty('--gx', `${(px * 100).toFixed(1)}%`);
+          page.style.setProperty('--gy', `${(py * 100).toFixed(1)}%`);
+          page.style.setProperty('--lift', '1');
+        });
+        page.addEventListener('pointerleave', () => {
+          held = null;
+          page.classList.remove('is-held');
+          page.style.setProperty('--lift', '0');
+          place();
+        });
+      });
+    }
+
+    // ---- Arrow buttons: one page at a time.
+    const stride = () => {
+      const [a, b] = pages;
+      return b ? Math.abs(b.getBoundingClientRect().left - a.getBoundingClientRect().left) : scroller.clientWidth * 0.8;
+    };
+    arrows.forEach((button) => {
+      button.addEventListener('click', () => {
+        const dir = Number(button.dataset.shelfDir) * (rtl ? -1 : 1);
+        scroller.scrollBy({ left: dir * stride(), behavior: reduced ? 'auto' : 'smooth' });
+      });
+    });
+
+    // ---- Drag with a mouse (touch and trackpads already scroll sideways natively).
+    // Letting go keeps the pages gliding for a moment.
+    let drag: { x: number; left: number; last: number; time: number; speed: number } | null = null;
+    let glide: gsap.core.Tween | null = null;
+    scroller.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      glide?.kill();
+      drag = { x: e.clientX, left: scroller.scrollLeft, last: e.clientX, time: performance.now(), speed: 0 };
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const moved = e.clientX - drag.x;
+      if (!scroller.classList.contains('is-dragging') && Math.abs(moved) < 4) return;
+      scroller.classList.add('is-dragging');
+      if (held) {
+        held.classList.remove('is-held');
+        held.style.setProperty('--lift', '0');
+        held = null;
+      }
+      scroller.scrollLeft = drag.left - moved;
+      const now = performance.now();
+      drag.speed = (e.clientX - drag.last) / Math.max(1, now - drag.time); // px per ms
+      drag.last = e.clientX;
+      drag.time = now;
+    });
+    const release = () => {
+      if (!drag) return;
+      const { speed } = drag;
+      drag = null;
+      scroller.classList.remove('is-dragging');
+      if (!reduced && Math.abs(speed) > 0.2) {
+        glide = gsap.to(scroller, { scrollLeft: scroller.scrollLeft - speed * 320, duration: 0.9, ease: 'power3.out' });
+      }
+    };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
+
+    // ---- Entrance: the pages are dealt onto the table from the right, one after another.
+    if (!reduced) {
+      gsap.from(pages, {
+        x: () => window.innerWidth * 0.5,
+        rotation: 14,
+        opacity: 0,
+        duration: 1,
+        ease: 'power3.out',
+        stagger: 0.09,
+        clearProps: 'transform,opacity',
+        scrollTrigger: { trigger: scroller, start: 'top 80%', once: true },
+        onUpdate: queuePlace,
+        onComplete: place,
+      });
+    }
+  }
+</script>

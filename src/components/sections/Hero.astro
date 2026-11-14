@@ -11,19 +11,73 @@ interface Props {
 }
 
 const { hero, appUrl } = Astro.props;
-// Each sentence of the headline stays on its own line where it fits ("Write one story." / "Lose control of the plot.").
-const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
+// The headline is two halves. The first sentence is set straight, with a highlighter swipe over
+// `titleHighlight`. The last sentence ("Lose control of the plot.") does what it says: its letters
+// start in line and drift further out of it toward the end, and they scatter from the pointer.
+const sentences = hero.title.split(/(?<=[.!?])\s+/);
+const loose = sentences.length > 1 ? sentences.at(-1)! : null;
+const straight = (loose ? sentences.slice(0, -1) : sentences).join(' ');
+const mark = hero.titleHighlight && straight.includes(hero.titleHighlight) ? hero.titleHighlight : null;
+const [beforeMark, afterMark] = mark ? straight.split(mark) : [straight, ''];
+
+// Each loose letter's resting pose is worked out here, at build time, so it is the same with
+// JavaScript off or reduced motion on. `rand` is a fixed pseudo-random number per letter.
+const rand = (i: number, salt: number) => {
+  const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+const looseWords = (loose ?? '').split(' ');
+const letterCount = looseWords.join('').length;
+let k = 0;
+const looseLetters = looseWords.map((word) =>
+  [...word].map((char) => {
+    const t = letterCount > 1 ? k / (letterCount - 1) : 0; // 0 at the first letter → 1 at the last
+    const chaos = t ** 2.4;
+    const side = rand(k, 1) < 0.5 ? -1 : 1;
+    const tilt = side * (0.4 + 11 * chaos) * (0.45 + 0.55 * rand(k, 2));
+    const drop = chaos * 0.13 * (rand(k, 3) * 1.4 - 0.25);
+    k++;
+    return { char, style: `--tilt: ${tilt.toFixed(2)}deg; --drop: ${drop.toFixed(3)}em` };
+  }),
+);
 ---
 
 <section class="hero" aria-labelledby="hero-title">
   <Container class="hero__grid">
     <div class="hero__copy">
       <p class="eyebrow" data-hero-item>{hero.eyebrow}</p>
-      <Heading level={1} id="hero-title" class="hero__title" data-hero-title>{titleSentences.map((sentence, i) => <>{i > 0 && ' '}<span class="hero__title-sentence">{sentence}</span></>)}</Heading>
+      <Heading level={1} id="hero-title" class="hero__title" data-hero-title>
+        <span class="hero__title-sentence" data-hero-straight>{beforeMark}{mark && <span class="hero__mark">{mark}</span>}{afterMark}</span>
+        {
+          loose && (
+            <>
+              {' '}
+              <span class="hero__title-sentence hero__loose" data-hero-loose>
+                {/* Screen readers get the sentence as text; the loose letters are for the eye. */}
+                <span class="visually-hidden">{loose}</span>
+                <span aria-hidden="true">
+                  {looseLetters.map((word, i) => (
+                    <>
+                      {i > 0 && ' '}
+                      <span class="hero__word">
+                        {word.map((l) => (
+                          <span class="hero__char" style={l.style}>
+                            {l.char}
+                          </span>
+                        ))}
+                      </span>
+                    </>
+                  ))}
+                </span>
+              </span>
+            </>
+          )
+        }
+      </Heading>
       <p class="hero__lead" data-hero-item="slide">{hero.lead}</p>
 
       <div class="hero__actions" data-hero-item>
-        <Button href={appUrl} size="lg">{hero.primaryCta}</Button>
+        <span class="hero__magnet" data-magnetic><Button href={appUrl} size="lg">{hero.primaryCta}</Button></span>
         <Button href={hero.secondaryCta.href} size="lg" variant="ghost">{hero.secondaryCta.label}</Button>
       </div>
 
@@ -47,17 +101,120 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
 </section>
 
 <script>
-  import { gsap, duration, ease, revealDistance, prefersReducedMotion, showImmediately } from '../../scripts/motion';
+  import { gsap, duration, ease, revealDistance, prefersReducedMotion, showImmediately, initMagnetic } from '../../scripts/motion';
 
-  // ---- Entrance: the headline settles into place; the rest fades up after it.
+  const title = document.querySelector<HTMLElement>('[data-hero-title]');
+  const chars = title ? Array.from(title.querySelectorAll<HTMLElement>('.hero__char')) : [];
+
+  // ---- Entrance: the first sentence unfolds from its top edge and the highlighter swipes across;
+  // the second sentence's letters drop in and land crooked. The rest fades up after.
   // (The art has its own entrance — the story escaping the fold — in HeroArt.)
   if (prefersReducedMotion()) {
     showImmediately('[data-hero-item]');
   } else {
-    gsap
-      .timeline({ defaults: { ease: ease('--ease-out'), duration: duration('--dur-fold') * 1.5 } })
-      .fromTo('[data-hero-title]', { y: 28 }, { y: 0 }, 0)
-      .fromTo('[data-hero-item]', { y: revealDistance() }, { opacity: 1, y: 0, stagger: 0.09 }, 0.12);
+    const tl = gsap.timeline({ defaults: { ease: ease('--ease-out'), duration: duration('--dur-fold') * 1.5 } });
+    tl.fromTo(
+      '[data-hero-straight]',
+      { rotationX: -80, transformPerspective: 700, transformOrigin: '50% 0%' },
+      { rotationX: 0, duration: 0.9 },
+      0,
+    )
+      .to('.hero__mark', { '--swipe': 1, duration: 0.5, ease: 'power2.inOut' }, 0.75)
+      .fromTo(
+        chars,
+        { opacity: 0, y: '-0.75em', rotation: () => gsap.utils.random(-50, 50) },
+        { opacity: 1, y: 0, rotation: 0, duration: 1.1, ease: 'elastic.out(1, 0.55)', stagger: 0.03, clearProps: 'transform' },
+        0.4,
+      )
+      .fromTo('[data-hero-item]', { y: revealDistance() }, { opacity: 1, y: 0, stagger: 0.09 }, 0.12)
+      .call(startLoose, [], 0.4 + chars.length * 0.03 + 1.1);
+    initMagnetic();
+  }
+
+  // ---- "Lose control": each letter is on a spring. The pointer pushes nearby letters away
+  // (and spins them a little); a click or tap anywhere on the sentence knocks them all loose.
+  // They always swing back to their resting pose. The loop only runs while something is moving.
+  function startLoose() {
+    if (!title || !chars.length) return;
+    const RADIUS = 150; // px around the pointer that letters feel
+    const PUSH = 46; // px a letter directly under the pointer is pushed
+    const state = chars.map(() => ({ cx: 0, cy: 0, x: 0, y: 0, r: 0, vx: 0, vy: 0, vr: 0 }));
+    let pointer: { x: number; y: number } | null = null;
+    let origin = { x: 0, y: 0 };
+    let running = false;
+
+    // Each letter's resting centre, relative to the headline (measured while nothing is displaced).
+    const measure = () => {
+      const box = title.getBoundingClientRect();
+      chars.forEach((el, i) => {
+        const r = el.getBoundingClientRect();
+        state[i].cx = r.left + r.width / 2 - box.left - state[i].x;
+        state[i].cy = r.top + r.height / 2 - box.top - state[i].y;
+      });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    document.fonts?.ready.then(measure);
+
+    const tick = () => {
+      let moving = false;
+      for (let i = 0; i < chars.length; i++) {
+        const s = state[i];
+        let tx = 0;
+        let ty = 0;
+        if (pointer) {
+          const dx = origin.x + s.cx - pointer.x;
+          const dy = origin.y + s.cy - pointer.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          if (dist < RADIUS) {
+            const force = (1 - dist / RADIUS) ** 2 * PUSH;
+            tx = (dx / dist) * force;
+            ty = (dy / dist) * force;
+          }
+        }
+        s.vx = (s.vx + (tx - s.x) * 0.09) * 0.82;
+        s.vy = (s.vy + (ty - s.y) * 0.09) * 0.82;
+        s.vr = (s.vr + (tx * 0.55 - s.r) * 0.07) * 0.84;
+        s.x += s.vx;
+        s.y += s.vy;
+        s.r += s.vr;
+        if (Math.abs(s.x) + Math.abs(s.y) + Math.abs(s.r) + Math.abs(s.vx) + Math.abs(s.vy) + Math.abs(s.vr) > 0.05) moving = true;
+        chars[i].style.transform = `translate(${s.x.toFixed(2)}px, ${s.y.toFixed(2)}px) rotate(${s.r.toFixed(2)}deg)`;
+      }
+      if (!moving && !pointer) {
+        chars.forEach((el) => (el.style.transform = ''));
+        gsap.ticker.remove(tick);
+        running = false;
+      }
+    };
+    const run = () => {
+      if (!running) {
+        running = true;
+        gsap.ticker.add(tick);
+      }
+    };
+
+    const hero = title.closest<HTMLElement>('.hero') ?? title;
+    hero.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return; // a finger scrolling past shouldn't drag letters around
+      const box = title.getBoundingClientRect();
+      origin = { x: box.left, y: box.top };
+      pointer = { x: e.clientX, y: e.clientY };
+      run();
+    });
+    hero.addEventListener('pointerleave', () => (pointer = null));
+    // Scrolling moves the headline under a still pointer: forget the pointer until it moves again.
+    window.addEventListener('scroll', () => (pointer = null), { passive: true });
+
+    title.querySelector('[data-hero-loose]')?.addEventListener('pointerdown', () => {
+      state.forEach((s, i) => {
+        const kick = 0.4 + (i / chars.length) * 1.2; // the end of the sentence flies furthest
+        s.vx += gsap.utils.random(-9, 9) * kick;
+        s.vy += gsap.utils.random(-16, 4) * kick;
+        s.vr += gsap.utils.random(-14, 14) * kick;
+      });
+      run();
+    });
   }
 </script>
 
@@ -80,9 +237,76 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
     gap: var(--space-5);
   }
 
-  /* A sentence only breaks inside itself when it can't fit on one line (narrow phones). */
+  /* The headline is its own stacking context, so the highlighter can sit behind the letters. */
+  :global(.hero__title) {
+    isolation: isolate;
+    max-width: 7.4em;
+  }
+
+  /* A sentence only breaks inside itself when it can't fit on one line. */
   .hero__title-sentence {
     display: inline-block;
+  }
+
+  /* The highlighter: one slightly crooked swipe behind the words, drawn left to right on load. */
+  .hero__mark {
+    --swipe: 1;
+    position: relative;
+    white-space: nowrap;
+  }
+
+  .hero__mark::before {
+    content: '';
+    position: absolute;
+    inset: 0.2em -0.12em 0.02em -0.1em;
+    z-index: -1;
+    background: var(--color-highlight);
+    border-radius: 0.5em 0.12em 0.6em 0.1em / 0.12em 0.5em 0.1em 0.6em;
+    transform: rotate(-1.2deg) skewX(-8deg) scaleX(var(--swipe));
+    transform-origin: 0 50%;
+  }
+
+  :global([dir='rtl']) .hero__mark::before {
+    transform-origin: 100% 50%;
+  }
+
+  /* The loose sentence: words stay whole, each letter rests a little further out of line. */
+  .hero__word {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .hero__char {
+    display: inline-block;
+    translate: 0 var(--drop, 0);
+    rotate: var(--tilt, 0deg);
+    will-change: transform;
+  }
+
+  .hero__loose {
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  .hero__loose:active {
+    cursor: grabbing;
+  }
+
+  .hero__magnet {
+    display: inline-block;
+  }
+
+  /* Waiting for the entrance (only with JS and motion allowed; the script reveals them). */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js) .hero__mark {
+      --swipe: 0;
+    }
+
+    :global(.js) .hero__char {
+      opacity: 0;
+    }
   }
 
   .hero__lead {
@@ -125,10 +349,12 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
     color: var(--color-text-muted);
   }
 
-  /* Phones and small tablets: no illustration (Natalie: it didn't work at that size) —
-     the hero is just the copy. */
+  /* Phones and small tablets: the drawing sits under the copy, drawn larger than the screen and
+     cropped to the part that matters (the page and what escapes from it), bleeding off both edges. */
   .hero__art {
-    display: none;
+    height: min(104vw, 460px);
+    margin-inline: calc(-1 * var(--gutter));
+    overflow: clip;
   }
 
   @media (min-width: 960px) {
@@ -151,7 +377,9 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
 
     /* The art spans the right two-thirds behind the copy; the folded page sits beside the stats. */
     .hero__art {
-      display: block;
+      height: auto;
+      margin-inline: 0;
+      overflow: visible;
       position: absolute;
       inset-block: calc(-1 * var(--space-4)) calc(-1 * var(--space-7));
       inset-inline-end: var(--gutter);

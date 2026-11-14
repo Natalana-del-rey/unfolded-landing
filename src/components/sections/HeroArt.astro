@@ -38,6 +38,16 @@ const trailStrokes = piece('trails').split(/(?=M)/).filter((d) => d.trim());
 const TRAIL_STEPS = [[0, 2, 1, 3], [6, 7], [4, 5], [8, 9], [10]];
 const FLOW = ['plane', 'lighthouse', 'umbrella', 'key', 'whale'];
 
+// A patch of coloured paper behind each doodle, set slightly off it (like a second print pass
+// that didn't quite line up). Centre and size in the drawing's coordinates; colour = a --stock-* token.
+const patches = [
+  { name: 'plane', cx: 585, cy: 772, rx: 128, ry: 74, tilt: -18, stock: 'lilac' },
+  { name: 'lighthouse', cx: 884, cy: 452, rx: 104, ry: 112, tilt: 0, stock: 'mint' },
+  { name: 'umbrella', cx: 372, cy: 548, rx: 162, ry: 150, tilt: 12, stock: 'coral' },
+  { name: 'key', cx: 316, cy: 222, rx: 92, ry: 86, tilt: 0, stock: 'butter' },
+  { name: 'whale', cx: 786, cy: 214, rx: 214, ry: 150, tilt: -8, stock: 'sky' },
+];
+
 // The folded page: the app's paper, with the story's last line faintly on the top fold.
 const paper = await getImage({ src: paperImage, format: 'webp', width: 700, quality: 80 });
 const story = (await getEntry('story', 'sheet'))?.data.finalStory ?? [];
@@ -62,6 +72,17 @@ const lastLine = story.at(-1);
     </div>
 
     <svg viewBox="-790 -50 1810 1340" preserveAspectRatio="xMaxYMax meet">
+      <!-- Coloured paper patches, one behind each doodle. -->
+      <g class="patches">
+        {
+          patches.map((p) => (
+            <g class="patch" data-step={FLOW.indexOf(p.name)}>
+              <ellipse cx={p.cx} cy={p.cy} rx={p.rx} ry={p.ry} transform={`rotate(${p.tilt} ${p.cx} ${p.cy})`} style={`fill: var(--stock-${p.stock})`} />
+            </g>
+          ))
+        }
+      </g>
+
       <!-- The drawing's own flight paths: one S-curve carrying everything out of the story. -->
       <g class="trails">
         {TRAIL_STEPS.map((strokes, step) => strokes.map((i) => <path d={trailStrokes[i]} data-step={step} />))}
@@ -99,10 +120,16 @@ const lastLine = story.at(-1);
     for (let step = 0; step < steps; step++) {
       tl.to(art.querySelectorAll(`.trails [data-step="${step}"]`), { opacity: 1, duration: 0.18, stagger: 0.08 }, '>-0.05');
       tl.fromTo(
+        art.querySelector(`.patch[data-step="${step}"]`),
+        { opacity: 0, scale: 0, transformOrigin: '50% 50%' },
+        { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.6)' },
+        '>-0.06',
+      );
+      tl.fromTo(
         art.querySelector(`.doodle[data-step="${step}"]`),
         { opacity: 0, scale: 0.4, rotate: -12, transformOrigin: '50% 50%' },
         { opacity: 1, scale: 1, rotate: 0, duration: 0.5, ease: 'back.out(1.8)' },
-        '>-0.06',
+        '<0.08',
       );
     }
     tl.fromTo(
@@ -111,6 +138,34 @@ const lastLine = story.at(-1);
       { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(2.2)' },
       '>-0.1',
     );
+
+    // Once everything is out, it keeps drifting: each doodle bobs on its own slow rhythm, and its
+    // colour patch bobs a little less, so the two slide against each other.
+    tl.call(() => {
+      art.querySelectorAll<SVGElement>('.doodle path').forEach((el, i) => {
+        gsap.to(el, { y: 14 + (i % 3) * 5, rotation: i % 2 ? 1.5 : -1.5, transformOrigin: '50% 50%', duration: 2.6 + i * 0.45, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      });
+      art.querySelectorAll<SVGElement>('.patch ellipse').forEach((el, i) => {
+        gsap.to(el, { y: 7 + (i % 3) * 3, x: i % 2 ? 6 : -6, duration: 3.4 + i * 0.5, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      });
+    });
+
+    // The pointer shifts the drawing and the patches by different amounts: a little depth.
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      const svg = art.querySelector('svg')!;
+      const layer = art.querySelector('.patches')!;
+      const move = [gsap.quickTo(svg, 'x', { duration: 0.9, ease: 'power3.out' }), gsap.quickTo(svg, 'y', { duration: 0.9, ease: 'power3.out' })];
+      const back = [gsap.quickTo(layer, 'x', { duration: 1.2, ease: 'power3.out' }), gsap.quickTo(layer, 'y', { duration: 1.2, ease: 'power3.out' })];
+      window.addEventListener('pointermove', (e) => {
+        if (window.scrollY > window.innerHeight) return;
+        const nx = e.clientX / window.innerWidth - 0.5;
+        const ny = e.clientY / window.innerHeight - 0.5;
+        move[0](nx * -18);
+        move[1](ny * -14);
+        back[0](nx * 34);
+        back[1](ny * 26);
+      });
+    }
   }
 </script>
 
@@ -148,9 +203,19 @@ const lastLine = story.at(-1);
     }
 
     :global(.js) .hero-art .trails path,
+    :global(.js) .hero-art .patch,
     :global(.js) .hero-art .doodle[data-step],
     :global(.js) .hero-art .bubble {
       opacity: 0;
+    }
+  }
+
+  /* Phones and small tablets: drawn wider than the screen, anchored to the right edge. */
+  @media (max-width: 959px) {
+    .hero-art__box {
+      flex: none;
+      width: min(140cqw, 640px);
+      margin-inline-end: 2cqw;
     }
   }
 

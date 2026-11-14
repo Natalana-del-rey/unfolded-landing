@@ -34,6 +34,8 @@ const site = defineCollection({
     hero: z.object({
       eyebrow: z.string(),
       title: z.string(),
+      /** Words of the headline's first sentence that get the highlighter swipe (must appear in it). */
+      titleHighlight: z.string().optional(),
       lead: z.string(),
       primaryCta: z.string(),
       secondaryCta: cta,
@@ -51,6 +53,8 @@ const site = defineCollection({
       }),
     }),
     story: sectionIntro,
+    /** The side-scrolling shelf of finished pages: intro + the hint under it. */
+    shelf: sectionIntro.extend({ hint: z.string(), prevLabel: z.string(), nextLabel: z.string() }),
     features: sectionIntro,
     howItWorks: sectionIntro,
     testimonials: sectionIntro,
@@ -94,6 +98,19 @@ const story = defineCollection({
   }),
 });
 
+/** The shelf of finished pages — SAMPLE stories (written for the page, not from real games). */
+const stories = defineCollection({
+  loader: file('src/content/stories.json'),
+  schema: z.object({
+    order,
+    /** The paper stock the page is printed on (a --stock-* token; "paper" = the app's plain sheet). */
+    stock: z.enum(['butter', 'coral', 'sky', 'lilac', 'mint', 'paper']),
+    /** Whether the page carries the iridescent foil seal. */
+    foil: z.boolean().default(false),
+    lines: z.array(z.object({ join: z.string(), rest: z.string() })).min(2),
+  }),
+});
+
 const features = defineCollection({
   loader: file('src/content/features.json'),
   schema: z.object({
@@ -133,4 +150,4 @@ const testimonials = defineCollection({
   }),
 });
 
-export const collections = { site, story, features, steps, faq, testimonials };
+export const collections = { site, story, stories, features, steps, faq, testimonials };

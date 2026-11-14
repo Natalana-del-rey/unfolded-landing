@@ -14,7 +14,7 @@ const isExternal = (href: string) => /^https?:\/\//.test(href);
 <footer class="site-footer">
   <Container class="site-footer__inner">
     <p class="site-footer__credit">
-      <Link href={footer.creditUrl} external variant="quiet">{footer.credit}</Link>
+      <Link href={footer.creditUrl} external variant="quiet">{footer.credit}<span class="site-footer__arrow" aria-hidden="true"> ↗</span></Link>
     </p>
     <nav aria-label="Footer">
       <ul class="site-footer__links" role="list">
@@ -47,6 +47,25 @@ const isExternal = (href: string) => /^https?:\/\//.test(href);
     justify-content: space-between;
     gap: var(--space-3) var(--space-6);
     padding-block: var(--space-6);
+  }
+
+  /* The credit is the page's signature: set in the display face, larger than the links beside it. */
+  .site-footer__credit {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    line-height: var(--leading-snug);
+    color: var(--color-text);
+  }
+
+  .site-footer__arrow {
+    display: inline-block;
+    transition: transform var(--dur-slow) var(--ease-settle);
+  }
+
+  @media (hover: hover) {
+    .site-footer__credit :global(a:hover) .site-footer__arrow {
+      transform: translate(3px, -3px);
+    }
   }
 
   .site-footer__links {

@@ -58,7 +58,18 @@ export function initReveals(scope: ParentNode = document): void {
   const base = { opacity: 1, y: 0, duration: duration('--dur-fold'), ease: ease('--ease-out') };
 
   scope.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
-    gsap.fromTo(el, { y: revealDistance() }, { ...base, scrollTrigger: { trigger: el, start: 'top 88%', once: true } });
+    // Short things (section intros) unfold: hinged at their top edge, they swing down flat
+    // like a fold of paper opening. Tall things (the FAQ list) just rise.
+    const unfolds = el.offsetHeight < 360;
+    gsap.fromTo(
+      el,
+      unfolds ? { y: revealDistance(), rotationX: -55, transformPerspective: 900, transformOrigin: '50% 0%' } : { y: revealDistance() },
+      {
+        ...base,
+        ...(unfolds ? { rotationX: 0, duration: base.duration * 1.6 } : {}),
+        scrollTrigger: { trigger: el, start: 'top 88%', once: true },
+      },
+    );
   });
 
   scope.querySelectorAll<HTMLElement>('[data-reveal-group]').forEach((group) => {
@@ -68,5 +79,25 @@ export function initReveals(scope: ParentNode = document): void {
       { y: revealDistance() * 1.5 },
       { ...base, stagger: 0.12, scrollTrigger: { trigger: group, start: 'top 85%', once: true } },
     );
+  });
+}
+
+/**
+ * Magnetic: anything marked data-magnetic leans a little toward the pointer while it's over it,
+ * and springs back when the pointer leaves. Mouse only (no hover on touch), and not with reduced motion.
+ */
+export function initMagnetic(scope: ParentNode = document): void {
+  if (prefersReducedMotion() || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  scope.querySelectorAll<HTMLElement>('[data-magnetic]').forEach((el) => {
+    const x = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3.out' });
+    const y = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3.out' });
+    el.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      x((e.clientX - (r.left + r.width / 2)) * 0.28);
+      y((e.clientY - (r.top + r.height / 2)) * 0.28);
+    });
+    el.addEventListener('pointerleave', () => {
+      gsap.to(el, { x: 0, y: 0, duration: 0.9, ease: 'elastic.out(1, 0.4)' });
+    });
   });
 }

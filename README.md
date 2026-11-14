@@ -23,6 +23,9 @@ Measured on the live site on 2026-11-07.
 - **[Astro](https://astro.build) + TypeScript.** Static HTML, with JavaScript only where something moves.
 - **Plain CSS with design tokens** (CSS custom properties). No Tailwind, no CSS framework.
 - **GSAP + ScrollTrigger** for motion. **WebGL** for the folding paper sheet, ported from the game itself.
+- **Colour and light.** The app is ink on paper; the landing adds one highlighter and five coloured paper stocks
+  (tokens in `tokens.css`). The shelf of finished stories scrolls sideways, and each page tilts toward the pointer
+  with a moving glare and an iridescent foil seal. All CSS and a little pointer maths, no images.
 - **Content collections.** Every word on the page lives in `src/content/*.json` and is checked against a schema
   at build time, so the copy can move to a CMS later without touching components.
 - **Vercel** for hosting.
@@ -78,7 +81,7 @@ src/
   content/       every word on the page (JSON + schemas in content.config.ts)
   styles/        tokens.css (design tokens), base.css (reset, type, focus)
   components/ui/ design-system components
-  components/sections/  page sections: Hero, PaperStory, HowItWorks, Faq, FinalCta…
+  components/sections/  page sections: Hero, PaperStory, StoryShelf, HowItWorks, Faq, FinalCta…
   scripts/       motion helpers (GSAP), the WebGL paper fold
   pages/         index.astro, design-system.astro
 ```
