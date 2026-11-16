@@ -12,7 +12,7 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroArt from './sections/HeroArt.astro';
-import Wordmark from '../assets/img/unfolded-wordmark.svg';
+import Wordmark from '../assets/img/unfolded-logotype.svg';
 import { getEntry } from 'astro:content';
 
 const site = (await getEntry('site', 'home'))!.data;
@@ -79,5 +79,10 @@ const site = (await getEntry('site', 'home'))!.data;
     position: absolute;
     inset: 16px 48px 48px auto;
     width: 760px;
+  }
+
+  /* On the card the cat is larger than in the page's hero. */
+  .og__art :global(.hero-cat) {
+    width: 560px;
   }
 </style>

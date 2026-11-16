@@ -9,8 +9,8 @@
  */
 import type { CollectionEntry } from 'astro:content';
 import { getImage } from 'astro:assets';
-import paperImage from '../../assets/img/paper.png';
-import Wordmark from '../../assets/img/unfolded-wordmark.svg';
+import paperImage from '../../assets/img/paper-warm.png';
+import Wordmark from '../../assets/img/unfolded-logotype.svg';
 import Container from '../ui/Container.astro';
 import Heading from '../ui/Heading.astro';
 import Signatures from './Signatures.astro';
@@ -724,7 +724,7 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
     content: '';
     position: absolute;
     height: 10px;
-    background: #f5f4f1;
+    background: #f4efe2;
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.08);
   }
 
@@ -734,7 +734,7 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
 
   .accordion__layers::after {
     inset: auto 12px -10px;
-    background: #efeeea;
+    background: #ede7d8;
   }
 
   /* ---------- Stills (phones and reduced motion) ---------- */

@@ -39,7 +39,7 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
       </dl>
     </div>
 
-    <!-- The story escaping from a folded page (decorative: the copy says what the game is). -->
+    <!-- The cat peeking over a folded page (decorative: the copy says what the game is). -->
     <div class="hero__art">
       <HeroArt />
     </div>
@@ -50,7 +50,7 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
   import { gsap, duration, ease, revealDistance, prefersReducedMotion, showImmediately } from '../../scripts/motion';
 
   // ---- Entrance: the headline settles into place; the rest fades up after it.
-  // (The art has its own entrance — the story escaping the fold — in HeroArt.)
+  // (The art has its own entrance — the cat coming up behind its page — in HeroArt.)
   if (prefersReducedMotion()) {
     showImmediately('[data-hero-item]');
   } else {
@@ -125,15 +125,15 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
     color: var(--color-text-muted);
   }
 
-  /* Phones and small tablets: no illustration (Natalie: it didn't work at that size) —
-     the hero is just the copy. */
+  /* Phones and small tablets: the cat sits under the copy, centred. */
   .hero__art {
-    display: none;
+    width: min(82%, 360px);
+    margin-inline: auto;
   }
 
   @media (min-width: 960px) {
     /* The hero fills the first screen (minus the header), so the next section — which opens
-       with its own sheet of paper — never peeks in and competes with the hero's folded note. */
+       with its own sheet of paper — never peeks in and competes with the page the cat is holding. */
     .hero {
       min-height: calc(100svh - var(--header-height, 80px));
       display: grid;
@@ -151,7 +151,7 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
 
     /* The art spans the right two-thirds behind the copy; the folded page sits beside the stats. */
     .hero__art {
-      display: block;
+      margin-inline: 0;
       position: absolute;
       inset-block: calc(-1 * var(--space-4)) calc(-1 * var(--space-7));
       inset-inline-end: var(--gutter);

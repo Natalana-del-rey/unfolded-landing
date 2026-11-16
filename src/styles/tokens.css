@@ -2,26 +2,27 @@
    Unfolded design tokens
    --------------------------------------------------------------------------
    Two layers:
-   1. Primitives  — raw values. Names and values are shared 1:1 with the
-                    Unfolded app (folded-story/public/style.css), so the
-                    landing page and the product speak one language.
+   1. Primitives  — raw values. Names come from the Unfolded app
+                    (folded-story/public/style.css). The colours are the brand's
+                    ink + warm paper (#141414 on #FFFEFA); the app's own screens
+                    are a cooler grey.
    2. Semantic    — what a value is FOR. Components use only these.
    ========================================================================== */
 
 :root {
   /* ---------- 1. Primitives: colour (from the app) ---------- */
-  --ground: #ececeb;        /* the table */
-  --paper: #f6f6f5;         /* the sheet */
-  --paper-shade: #e3e3e1;
-  --paper-crease: #d2d2cf;
-  --hairline: #bdbdba;
+  --ground: #fffefa;        /* the page: the brand's paper colour */
+  --paper: #f6f3ea;         /* a slightly deeper sheet, for bands and cards */
+  --paper-shade: #ebe7dc;
+  --paper-crease: #dad5c8;
+  --hairline: #c4bfb2;
   --ink: #141414;
   --ink-soft: #3a3a3a;
   --muted: #666666;         /* 5.3:1 on paper — OK for body text */
   --faint: #8c8c8c;         /* 3.1:1 on paper — decoration only, never text */
-  --disabled: #e0e0de;
-  --tag: #dcdcda;
-  --on-ink: #f6f6f5;
+  --disabled: #e8e4d9;
+  --tag: #e6e2d6;
+  --on-ink: #fffefa;
   --signal: #a8261b;        /* errors only */
 
   /* ---------- Primitives: type families ---------- */

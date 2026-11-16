@@ -10,8 +10,8 @@
 import { Image } from 'astro:assets';
 import mark from '../../assets/img/mark.png';
 import markWink from '../../assets/img/mark-wink.png';
-import doodle from '../../assets/img/mark-doodle.svg?url';
-import doodleWink from '../../assets/img/mark-doodle-wink.svg?url';
+import doodle from '../../assets/img/mark-cat.svg?url';
+import doodleWink from '../../assets/img/mark-cat-wink.svg?url';
 
 type Props = {
   size?: number;
@@ -54,7 +54,7 @@ const { size = 64, variant = 'app', class: className } = Astro.props;
     height: 100%;
   }
 
-  /* The doodle drawing isn't square (845 × 969); keep its proportions inside the box. */
+  /* The cat drawing isn't square (1166 × 1288); keep its proportions inside the box. */
   .mark--doodle :global(img) {
     object-fit: contain;
   }
