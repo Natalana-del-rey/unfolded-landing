@@ -58,7 +58,7 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
               <div class="story__still" aria-hidden="true" style={`--paper-texture: url(${paper.src})`}>
                 {data.visual === 'paper' && (
                   <div class="still-fold">
-                    {/* Phones with motion: the top half folds back out of sight as it comes into view. */}
+                    {/* Phones with motion: the top half folds forward and lands on the page as a short strip, back side up. */}
                     <div class="still-fold__flap">
                       <p>
                         {sheet.theirs}{' '}
@@ -71,7 +71,8 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
                       <span class="still-fold__shade" />
                     </div>
                     <div class="still-paper">
-                      <span class="still-paper__bands" />
+                      {/* The folded strip, for the still picture (with motion, the flap itself lands here). */}
+                      <span class="still-paper__strip" />
                       <p data-type="next">
                         {typed(sheet.next).map((word, i) => (
                           <>{i > 0 && ' '}<span class="w">{word.map((c) => <span class="ch">{c}</span>)}</span></>
@@ -328,10 +329,13 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
       ScrollTrigger.create({ trigger, start, end: 'max', once: true, onEnter: () => tl.play() });
 
     // Picture 1 — one turn, in the game's order: finish the sentence (it types in), fold the top
-    // half back out of sight, then start the next sentence on the half that's left.
+    // half forward (as in the app: it lands on the page as a short strip, back side up, getting
+    // shorter while it stands edge-on), then start the next sentence under the strip.
     const foldEl = section.querySelector<HTMLElement>('.still-fold');
     if (foldEl) {
-      const flap = foldEl.querySelector('.still-fold__flap')!;
+      const flap = foldEl.querySelector<HTMLElement>('.still-fold__flap')!;
+      const shade = foldEl.querySelector('.still-fold__shade');
+      const STRIP = 48; // the folded flap lands as a strip this tall (the app's size)
       const paperEl = foldEl.querySelector<HTMLElement>('.still-paper')!;
       const letters = (key: string) => foldEl.querySelectorAll(`[data-type="${key}"] .ch`);
       const type = () => ({ opacity: 1, duration: 0.01, stagger: 0.05, ease: 'none' });
@@ -348,10 +352,15 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
         .call(active(false), [], 'fold')
         .to(button.querySelector('[data-label="fold"]'), { opacity: 0, duration: 0.2 }, 'fold')
         .to(button.querySelector('[data-label="send"]'), { opacity: 1, duration: 0.2 }, 'fold+=0.15')
-        .to(flap, { rotateX: 180, duration: 1.1, ease: 'power2.inOut' }, 'fold')
-        .to(foldEl.querySelector('.still-fold__shade'), { opacity: 0.18, duration: 0.55, ease: 'power1.in' }, 'fold')
-        .to(paperEl.querySelector('.still-paper__bands'), { opacity: 1, duration: 0.3 }, 'fold+=0.85')
-        .to(paperEl, { y: () => -paperEl.offsetHeight / 2, duration: 0.7, ease: 'power2.inOut' }, 'fold+=1')
+        .to(flap, { rotateX: -180, duration: 1.1, ease: 'power2.inOut' }, 'fold')
+        .to(flap, { scaleY: () => STRIP / flap.offsetHeight, duration: 0.34, ease: 'sine.inOut' }, 'fold+=0.46')
+        // Edge-on at the halfway point: from there on you see the back of the paper, with no writing.
+        .set(flap.querySelector('p'), { autoAlpha: 0 }, 'fold+=0.55')
+        .to(shade, { opacity: 0.2, duration: 0.55, ease: 'power1.in' }, 'fold')
+        .to(shade, { opacity: 0.06, duration: 0.55, ease: 'power1.out' }, 'fold+=0.55')
+        // Landed: the strip casts a small shadow on the page (the offset is mirrored by the flip).
+        .to(flap, { boxShadow: '0 -3px 6px rgb(0 0 0 / 0.14)', duration: 0.4 }, 'fold+=0.7')
+        .to([flap, paperEl], { y: () => -paperEl.offsetHeight / 2, duration: 0.7, ease: 'power2.inOut' }, 'fold+=1')
         .addLabel('next', '+=0.2')
         .call(active(true), [], 'next+=0.05')
         .to(letters('next'), type(), 'next');
@@ -360,7 +369,7 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
       const sentEl = foldEl.querySelector<HTMLElement>('.still-sent');
       if (sentEl) {
         tl.addLabel('sent', '+=0.3')
-          .to([paperEl, button], { opacity: 0, y: '-=24', duration: 0.45, ease: 'power2.in' }, 'sent')
+          .to([flap, paperEl, button], { opacity: 0, y: '-=24', duration: 0.45, ease: 'power2.in' }, 'sent')
           .set(sentEl, { autoAlpha: 1 }, 'sent+=0.4')
           .fromTo(
             sentEl.querySelectorAll(':scope > :not(.still-sent__typing)'),
@@ -766,7 +775,7 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
     }
   }
 
-  /* The folded sheet: only the bottom half shows, with earlier folds as bands along the top. */
+  /* The folded sheet: only the bottom half shows. */
   .still-paper .w,
   .still-fold__flap .w {
     white-space: nowrap;
@@ -787,6 +796,22 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
     inset: -10px 0 auto;
     height: 10px;
     background: linear-gradient(rgb(255 255 255 / 0.55), transparent 45%, rgb(0 0 0 / 0.06) 80%, rgb(0 0 0 / 0.18));
+  }
+
+  /* Picture 1: the written half lies folded over the top of the page as a short strip, back side up;
+     the next sentence starts under it. */
+  .still-fold .still-paper {
+    padding-block: 64px 40px;
+  }
+
+  .still-paper__strip {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 48px;
+    background:
+      linear-gradient(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.06)),
+      var(--paper-texture) center top / 100% 400% no-repeat;
+    box-shadow: 0 3px 6px rgb(0 0 0 / 0.14);
   }
 
   .still-paper--small {
@@ -953,8 +978,13 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
       font: var(--weight-regular) 20px / 30px var(--font-ui);
       color: var(--color-text);
       transform-origin: bottom;
-      backface-visibility: hidden;
+      z-index: 1; /* it lands on top of the page below */
       box-shadow: 0 -2px 6px rgb(0 0 0 / 0.04);
+    }
+
+    /* The flap itself becomes the strip. */
+    :global(.js) .still-fold .still-paper__strip {
+      display: none;
     }
 
     .still-fold__shade {
@@ -983,11 +1013,6 @@ const sentAvatar = sentAvatarFile ? await getImage({ src: sentAvatarFile, format
 
     :global(.js) .still-story :global(.signature) {
       clip-path: inset(-20% 100% -20% 0);
-    }
-
-    /* Before the fold the sheet is whole: no fold bands yet. */
-    :global(.js) .still-fold .still-paper__bands {
-      opacity: 0;
     }
   }
 

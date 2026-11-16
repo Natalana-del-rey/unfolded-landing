@@ -2,6 +2,15 @@
   "home": {
     "name": "Unfolded",
     "appUrl": "https://play.unfolded-game.com/en",
+    "appUrlHe": "https://play.unfolded-game.com/",
+    "languageChoice": {
+      "title": "English or Hebrew?",
+      "lead": "The game comes in both. We’ll remember your choice on this device.",
+      "english": "English",
+      "hebrew": "עברית",
+      "close": "Close",
+      "change": "Game language"
+    },
     "meta": {
       "title": "Unfolded — the folded-paper story game, on your phones",
       "description": "A party game for 2–10 friends on their phones. Take turns finishing a sentence and starting the next, then read the whole story out loud."
@@ -18,7 +27,7 @@
       "specs": [
         {
           "value": "2–10",
-          "label": "friends"
+          "label": "players"
         },
         {
           "value": "6–12",

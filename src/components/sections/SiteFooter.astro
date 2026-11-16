@@ -5,9 +5,11 @@ import Link from '../ui/Link.astro';
 
 type Props = {
   footer: { credit: string; creditUrl: string; links: { label: string; href: string }[] };
+  /** Label of the "change the game's language" link (shown only to visitors who were offered the choice). */
+  languageLabel?: string;
 };
 
-const { footer } = Astro.props;
+const { footer, languageLabel } = Astro.props;
 const isExternal = (href: string) => /^https?:\/\//.test(href);
 ---
 
@@ -26,6 +28,14 @@ const isExternal = (href: string) => /^https?:\/\//.test(href);
               </Link>
             </li>
           ))
+        }
+        {
+          languageLabel && (
+            // Hidden until LanguageChoice's script decides this visitor gets the choice.
+            <li hidden data-language-change>
+              <button type="button" class="site-footer__button">{languageLabel}</button>
+            </li>
+          )
         }
       </ul>
     </nav>
@@ -56,6 +66,28 @@ const isExternal = (href: string) => /^https?:\/\//.test(href);
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  /* Looks like the quiet links beside it. */
+  .site-footer__button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: var(--weight-medium);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+    cursor: pointer;
+  }
+
+  @media (hover: hover) {
+    .site-footer__button:hover {
+      text-decoration-thickness: 2px;
+      text-decoration-color: currentColor;
+    }
   }
 
   /* Phones: stack, credit first. */

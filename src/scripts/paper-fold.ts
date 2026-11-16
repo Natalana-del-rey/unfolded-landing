@@ -1,17 +1,18 @@
 /**
  * PaperFold — the Unfolded app's WebGL paper fold, ported for the landing page.
  *
- * A sheet split into two equal halves. The top half (the written line) curls
- * back over a rounded crease — a wide soft arc that tightens into a fold — lit
- * from the top-left, shading the paper below as it passes, and ends behind the
- * sheet. Shaders and lighting are unchanged from the app (folded-story/public/fold.js);
- * what's new is that the words are given as data and the fold can be driven by
- * time (animateTo) or directly (setProgress, e.g. from scroll).
+ * A sheet split into two equal halves. The top half (the written line) lifts
+ * toward you over a rounded crease, turns, and lands on top of the page, back
+ * side up, as a short strip — lit from the top-left, shading the paper below as
+ * it passes. The fold is symbolic, as in the app: the flap gets shorter while it
+ * stands edge-on. Shaders and lighting are the app's (folded-story/public/fold.js,
+ * forward fold of 2026-11-15); what's new is that the words are given as data and
+ * the fold can be driven by time (animateTo) or directly (setProgress, e.g. from scroll).
  */
 
 export interface PaperLine {
   text: string;
-  /** 'top' = the half that folds away; 'bottom' = the half that stays visible. */
+  /** 'top' = the half that folds over; 'bottom' = the half that stays visible (written under the folded strip). */
   half: 'top' | 'bottom';
   /** CSS colour; defaults to ink. */
   color?: string;
@@ -45,7 +46,7 @@ export interface PaperFoldOptions {
 
 const VS = `
 attribute vec2 a_uv;
-uniform vec2 u_size; uniform float u_vc, u_theta, u_r, u_D;
+uniform vec2 u_size; uniform float u_vc, u_theta, u_r, u_D, u_len;
 varying vec2 v_uv; varying vec3 v_n; varying float v_flap;
 void main() {
   v_uv = a_uv;
@@ -58,46 +59,63 @@ void main() {
   v_flap = 0.0;
   if (d > 0.0) {
     v_flap = 1.0;
+    d *= u_len; // the flap is shorter by the time it comes down (it shrinks while it is edge-on to you)
     float arc = u_r * u_theta;
     float a;
-    if (d <= arc) { a = d / u_r; y = yc + u_r * sin(a); z = -u_r * (1.0 - cos(a)); }
+    if (d <= arc) { a = d / u_r; y = yc + u_r * sin(a); z = u_r * (1.0 - cos(a)); }
     else { a = u_theta; float s = d - arc;
-      y = yc + u_r * sin(a) + s * cos(a); z = -u_r * (1.0 - cos(a)) - s * sin(a); }
-    n = vec3(0.0, sin(a), cos(a));
-    float sag = sin(u_theta) * 10.0 * (1.0 - pow(2.0 * a_uv.x - 1.0, 2.0)) * smoothstep(0.0, u_size.y * 0.5, d);
-    z -= sag * cos(a);
+      y = yc + u_r * sin(a) + s * cos(a); z = u_r * (1.0 - cos(a)) + s * sin(a); }
+    n = vec3(0.0, -sin(a), cos(a));
+    float sag = max(sin(u_theta), 0.0) * 10.0 * (1.0 - pow(2.0 * a_uv.x - 1.0, 2.0)) * smoothstep(0.0, u_size.y * 0.5, d);
+    z += sag * cos(a);
   }
-  gl_Position = vec4(x / (u_size.x * 0.5), y / (u_size.y * 0.5), -z / 2000.0, 1.0 - z / u_D);
+  float w = 1.0 - z / u_D;
+  // things nearer to you grow around the crease line (not around the sheet's middle)
+  gl_Position = vec4(x / (u_size.x * 0.5), ((y - yc) + yc * w) / (u_size.y * 0.5), -z / 2000.0, w);
   v_n = n;
 }`;
 
 const FS = `
 precision highp float;
-uniform sampler2D u_tex; uniform float u_vc, u_theta, u_H;
+uniform sampler2D u_tex; uniform float u_vc, u_theta, u_H, u_edge, u_soft, u_below;
 varying vec2 v_uv; varying vec3 v_n; varying float v_flap;
 void main() {
   vec4 c = texture2D(u_tex, v_uv);
   if (c.a < 0.03) discard;
   vec3 L = normalize(vec3(-0.25, 0.55, 0.8));
   vec3 n = normalize(v_n);
-  if (n.z < -0.001) { n = -n; c.rgb = vec3(0.93, 0.93, 0.925); }
+  if (n.z < -0.001) {
+    // The back of the sheet: plain paper, with a clean edge (half see-through edge pixels would punch holes in the page under it).
+    if (c.a < 0.5) discard;
+    n = -n; c = vec4(0.945, 0.935, 0.905, 1.0); // the app's is a cooler grey; this page's paper is warm
+  }
   float diff = max(dot(n, L), 0.0);
   float shade = 0.72 + 0.28 * (diff / L.z);
   if (v_flap < 0.5) {
+    // the flap hangs over the page, so the page is in its shadow up to (and softly past) the flap's free edge
     float dist = (v_uv.y - u_vc) * u_H;
-    shade -= sin(u_theta) * 0.22 * exp(-dist / 26.0) + smoothstep(1.2, 3.14, u_theta) * 0.10 * exp(-dist / 7.0);
+    shade -= 0.18 * (1.0 - smoothstep(u_edge - u_soft, u_edge + u_soft, dist)) * smoothstep(u_below - 6.0, u_below - 1.0, dist);
+  } else if (normalize(v_n).z < 0.0) {
+    // the flap's back: a soft darker band where it bends away at the crease
+    float up = (u_vc - v_uv.y) * u_H;
+    shade -= smoothstep(2.2, 3.14, u_theta) * 0.05 * exp(-up / 30.0);
   }
-  gl_FragColor = vec4(c.rgb * clamp(shade, 0.0, 1.15), c.a);
+  gl_FragColor = vec4(c.rgb * clamp(shade, 0.0, 1.02), c.a);
 }`;
 
 const CREASE = 0.5; // the sheet is two equal halves
 const PERSPECTIVE = 1400; // like CSS perspective
 const INSET = 24; // room around the sheet for its shadow
 const BAND = 5; // spacing of earlier players' folds
+const STRIP = 48; // the folded flap lands as a strip this tall (the app's size)
 const PAD_X = 32; // text inset from the sheet edge
 const COLS = 24;
 const ROWS = 160; // finely divided so the curve is smooth
 
+const smooth = (a: number, b: number, x: number) => {
+  const k = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return k * k * (3 - 2 * k);
+};
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 export const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -114,7 +132,7 @@ export class PaperFold {
   private width = 0;
   private height = 0;
   private dpr = 1;
-  private theta = 0; // 0 = flat, π = fully folded
+  private theta = 0; // 0 = flat, end() (a touch past π) = fully folded
   private frame = 0;
   private resizeObserver: ResizeObserver;
 
@@ -177,14 +195,14 @@ export class PaperFold {
   /** 0 = flat sheet, 1 = folded. Use for scroll-driven folds. */
   setProgress(progress: number): void {
     cancelAnimationFrame(this.frame);
-    this.theta = Math.min(1, Math.max(0, progress)) * Math.PI;
+    this.theta = Math.min(1, Math.max(0, progress)) * this.end();
     this.draw();
   }
 
   /** Animates to a fold progress (0–1). Jumps straight there with reduced motion. */
   animateTo(progress: number, ms: number): Promise<void> {
     cancelAnimationFrame(this.frame);
-    const target = progress * Math.PI;
+    const target = progress * this.end();
     if (prefersReducedMotion()) {
       this.theta = target;
       this.draw();
@@ -217,6 +235,24 @@ export class PaperFold {
   }
 
   // ---------------------------------------------------------------- internals
+
+  // The fold's shape, as in the app. How tight the crease ends: tight, so the flap lies on the page.
+  private roll = () => 4 + (this.options.previousFolds ?? 0) * 0.5;
+  private flapLen = () => this.height * CREASE - 6;
+  /** How long the flap is at angle t: full length while the writing shows, shorter once it stands edge-on. */
+  private lenAt = (t: number) => {
+    const short = Math.min(this.flapLen(), STRIP + this.roll() * Math.PI + 2);
+    return this.flapLen() + (short - this.flapLen()) * smooth(0.4 * Math.PI, 0.72 * Math.PI, t);
+  };
+  /** The fold ends a touch past flat: the flap's free edge comes to rest on the page. */
+  private end = () => Math.PI + (2 * this.roll() - 1.5) / Math.max(40, STRIP);
+  /** Where the folded flap's free edge rests, in px from the sheet's top. */
+  private landed = () => {
+    const r = this.roll();
+    const e = this.end();
+    const s = Math.max(0, this.lenAt(e) - r * e);
+    return this.height * CREASE - (r * Math.sin(e) + s * Math.cos(e));
+  };
 
   private compile(): WebGLProgram {
     const { gl } = this;
@@ -312,7 +348,8 @@ export class PaperFold {
     g.textBaseline = 'middle';
     const maxWidth = x1 - x0 - PAD_X * 2;
     const foldsHeight = previousFolds ? 6 + previousFolds * BAND + 4 : 0;
-    const cursor = { top: y0 + foldsHeight + 28, bottom: H * CREASE + 28 };
+    // The bottom half's words start under where the folded strip lands.
+    const cursor = { top: y0 + foldsHeight + 28, bottom: this.landed() + 14 };
     const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#141414';
 
     for (const line of lines) {
@@ -358,13 +395,24 @@ export class PaperFold {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Real paper bows into a wide soft arc first and only tightens into a crisp crease at the end.
-    const p = this.theta / Math.PI;
-    const rEnd = 7 + (this.options.previousFolds ?? 0) * 1.5;
+    const theta = this.theta;
+    const p = Math.min(1, theta / Math.PI);
+    const rEnd = this.roll();
     const r0 = H * CREASE * 0.55;
+    const len = this.lenAt(theta);
+    const r = Math.min(rEnd + (r0 - rEnd) * Math.pow(1 - p, 1.6), Math.max(rEnd, len * 0.3)); // a short flap can't bow as widely
+    // Where the flap's free edge is (px below the crease, and how high above the page), for its shadow.
+    const s = Math.max(0, len - r * theta);
+    const below = -(r * Math.sin(theta) + s * Math.cos(theta));
+    const high = Math.max(0, r * (1 - Math.cos(theta)) + s * Math.sin(theta));
     gl.uniform2f(u('u_size'), W, H);
     gl.uniform1f(u('u_vc'), CREASE);
-    gl.uniform1f(u('u_theta'), this.theta);
-    gl.uniform1f(u('u_r'), rEnd + (r0 - rEnd) * Math.pow(1 - p, 1.6));
+    gl.uniform1f(u('u_theta'), theta);
+    gl.uniform1f(u('u_r'), r);
+    gl.uniform1f(u('u_len'), len / this.flapLen());
+    gl.uniform1f(u('u_below'), below);
+    gl.uniform1f(u('u_edge'), below + 0.69 * high); // the light sits above the page, so the shadow falls further down
+    gl.uniform1f(u('u_soft'), 2.5 + 0.25 * high);
     gl.uniform1f(u('u_D'), PERSPECTIVE);
     gl.uniform1f(u('u_H'), H);
     gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);

@@ -27,6 +27,16 @@ const site = defineCollection({
   schema: z.object({
     name: z.string(),
     appUrl: z.url(),
+    /** The Hebrew game. The buttons go here once a visitor has picked Hebrew (see LanguageChoice). */
+    appUrlHe: z.url(),
+    languageChoice: z.object({
+      title: z.string(),
+      lead: z.string(),
+      english: z.string(),
+      hebrew: z.string(),
+      close: z.string(),
+      change: z.string(),
+    }),
     meta: z.object({
       title: z.string().max(70),
       description: z.string().max(170),

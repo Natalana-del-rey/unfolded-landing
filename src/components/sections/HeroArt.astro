@@ -184,6 +184,13 @@ const drawing = (svg: string) =>
     display: none;
   }
 
+  /* Also behind the page: as the cat pops up it rises a touch too far before settling, and the
+     tips of these showed for a moment as stray marks on the page's top edge. */
+  .hero-cat__head :global([data-part='mouth']),
+  .hero-cat__head :global([data-part='whiskers-right']) {
+    display: none;
+  }
+
   /* The wink is an instant swap, like a real blink (same as <Mark>). */
   .hero-cat__wink,
   .hero-cat.is-winking .hero-cat__open {

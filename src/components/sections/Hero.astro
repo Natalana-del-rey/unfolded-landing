@@ -131,6 +131,23 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
     margin-inline: auto;
   }
 
+  /* One column (phones and small tablets): everything sits on the centre line, like the cat below. */
+  @media (max-width: 959px) {
+    .hero__copy {
+      align-items: center;
+      text-align: center;
+    }
+
+    .hero__actions,
+    .hero__specs {
+      justify-content: center;
+    }
+
+    .hero__specs div {
+      align-items: center;
+    }
+  }
+
   @media (min-width: 960px) {
     /* The hero fills the first screen (minus the header), so the next section — which opens
        with its own sheet of paper — never peeks in and competes with the page the cat is holding. */
@@ -140,8 +157,26 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
       align-content: center;
     }
 
+    /* Small laptops and wide tablets: two real columns, so the cat can never sit on the words
+       (the headline wraps inside its own column instead). */
+    :global(.hero__grid) {
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      gap: var(--space-6);
+    }
+
+    .hero__art {
+      width: 100%;
+      margin-inline: 0;
+      align-self: end;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    /* Room for the full picture: one column again, with the art laid behind it. */
     :global(.hero__grid) {
       position: relative;
+      grid-template-columns: none;
+      gap: var(--space-8);
     }
 
     .hero__copy {
@@ -151,7 +186,7 @@ const titleSentences = hero.title.split(/(?<=[.!?])\s+/);
 
     /* The art spans the right two-thirds behind the copy; the folded page sits beside the stats. */
     .hero__art {
-      margin-inline: 0;
+      align-self: auto;
       position: absolute;
       inset-block: calc(-1 * var(--space-4)) calc(-1 * var(--space-7));
       inset-inline-end: var(--gutter);

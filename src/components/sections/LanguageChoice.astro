@@ -1,0 +1,188 @@
+---
+/**
+ * LanguageChoice — "English or Hebrew?", asked once before the game opens.
+ *
+ * The game exists in both languages, and nothing on a phone reliably says which one its owner
+ * wants (plenty of Hebrew speakers keep their phone in English). So:
+ *  - visitors who are plausibly Hebrew speakers (clock on Israel time, or Hebrew anywhere in the
+ *    browser's languages) are asked the first time they tap a "Start a game" button;
+ *  - the answer is remembered on this device, and from then on every button goes straight there;
+ *  - everyone else is never asked: the buttons stay plain links to the English game.
+ * Without JavaScript the buttons are plain links to the English game too.
+ */
+import Button from '../ui/Button.astro';
+import Heading from '../ui/Heading.astro';
+
+interface Props {
+  copy: { title: string; lead: string; english: string; hebrew: string; close: string };
+  appUrl: string;
+  appUrlHe: string;
+}
+
+const { copy, appUrl, appUrlHe } = Astro.props;
+---
+
+<dialog class="language" aria-labelledby="language-title" data-en={appUrl} data-he={appUrlHe}>
+  <button type="button" class="language__close" aria-label={copy.close} data-language-close>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+  </button>
+  <Heading level={2} size="xl" id="language-title">{copy.title}</Heading>
+  <p class="language__lead">{copy.lead}</p>
+  <div class="language__options">
+    <Button href={appUrl} variant="secondary" size="lg" data-language="en">{copy.english}</Button>
+    <Button href={appUrlHe} variant="secondary" size="lg" data-language="he" lang="he" dir="rtl">{copy.hebrew}</Button>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>('.language');
+  if (dialog && typeof dialog.showModal === 'function') {
+    const urls = { en: dialog.dataset.en!, he: dialog.dataset.he! };
+    type Lang = keyof typeof urls;
+    const KEY = 'gameLanguage';
+    // Every link to the game on the page (the dialog's own two are left alone).
+    const gameLinks = [...document.querySelectorAll<HTMLAnchorElement>('a')].filter(
+      (a) => a.getAttribute('href') === urls.en && !dialog.contains(a),
+    );
+
+    const remembered = (): Lang | null => {
+      try {
+        const v = localStorage.getItem(KEY);
+        return v === 'en' || v === 'he' ? v : null;
+      } catch {
+        return null; // storage blocked: just ask each time
+      }
+    };
+    const remember = (lang: Lang) => {
+      try {
+        localStorage.setItem(KEY, lang);
+      } catch {
+        /* storage blocked: the choice still works for this tap */
+      }
+    };
+    const point = (lang: Lang | null) => gameLinks.forEach((a) => (a.href = urls[lang ?? 'en']));
+
+    const likelyHebrew = () => {
+      let zone = '';
+      try {
+        zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? '';
+      } catch {
+        /* no time zone: fall back to the languages */
+      }
+      const languages = navigator.languages?.length ? navigator.languages : [navigator.language ?? ''];
+      return /^Asia\/(Jerusalem|Tel_Aviv)$/.test(zone) || languages.some((l) => /^(he|iw)\b/i.test(l));
+    };
+
+    point(remembered());
+
+    // Ask only when there's no answer yet and the visitor might want Hebrew.
+    gameLinks.forEach((a) =>
+      a.addEventListener('click', (event) => {
+        if (remembered() || !likelyHebrew()) return;
+        event.preventDefault();
+        dialog.showModal();
+      }),
+    );
+
+    // The two answers are real links: remember, then let the link do its job.
+    dialog.querySelectorAll<HTMLAnchorElement>('[data-language]').forEach((a) =>
+      a.addEventListener('click', () => {
+        const lang = a.dataset.language as Lang;
+        remember(lang);
+        point(lang);
+        dialog.close();
+      }),
+    );
+
+    dialog.querySelector('[data-language-close]')?.addEventListener('click', () => dialog.close());
+    // A tap on the dimmed page around the card closes it.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+
+    // A quiet footer link to change the answer later, for the visitors who get the choice.
+    const change = document.querySelector<HTMLElement>('[data-language-change]');
+    if (change && (remembered() || likelyHebrew())) {
+      change.hidden = false;
+      change.querySelector('button')?.addEventListener('click', () => dialog.showModal());
+    }
+  }
+</script>
+
+<style>
+  /* A small sheet of paper over the dimmed page. */
+  .language {
+    width: min(100% - 2 * var(--space-4), 23rem);
+    margin: auto;
+    padding: var(--space-7) var(--space-6) var(--space-6);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-field);
+    background: var(--color-bg);
+    color: var(--color-text);
+    box-shadow: var(--shadow-lift);
+    text-align: center;
+  }
+
+  .language::backdrop {
+    background: rgb(20 20 20 / 0.45);
+  }
+
+  .language__lead {
+    margin-block: var(--space-3) var(--space-6);
+    color: var(--color-text-soft);
+  }
+
+  .language__options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  .language__close {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-end: var(--space-2);
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .language__close svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+
+  /* It settles onto the page, like the other paper here. */
+  @media (prefers-reduced-motion: no-preference) {
+    .language[open] {
+      animation: language-in var(--dur-slow) var(--ease-settle);
+    }
+
+    .language[open]::backdrop {
+      animation: language-dim var(--dur-base) ease-out;
+    }
+  }
+
+  @keyframes language-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  @keyframes language-dim {
+    from {
+      opacity: 0;
+    }
+  }
+</style>
