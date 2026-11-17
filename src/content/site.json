@@ -1,8 +1,8 @@
 {
   "home": {
     "name": "Unfolded",
-    "appUrl": "https://play.unfolded-game.com/en",
-    "appUrlHe": "https://play.unfolded-game.com/he",
+    "appUrl": "https://play.unfolded-game.com/en?from=landing",
+    "appUrlHe": "https://play.unfolded-game.com/he?from=landing",
     "languageChoice": {
       "title": "English or Hebrew?",
       "lead": "The game comes in both. We’ll remember your choice on this device.",
